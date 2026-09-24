@@ -1,10 +1,74 @@
 import { NestFactory } from '@nestjs/core';
-import { AppModule } from './app.module';
+import { ValidationPipe, VersioningType } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import helmet from 'helmet';
+import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import { AppModule } from './app.module';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   const configService = app.get(ConfigService);
+
+  app.use(
+    helmet({
+      contentSecurityPolicy: {
+        directives: {
+          defaultSrc: [`'self'`],
+          styleSrc: [`'self'`, `'unsafe-inline'`],
+          imgSrc: [`'self'`, 'data:', 'validator.swagger.io'],
+          scriptSrc: [`'self'`, `https: 'unsafe-inline'`],
+        },
+      },
+    }),
+  );
+
+  const corsOrigin = configService.get<string>('CORS_ORIGIN');
+  let origin: boolean | string | string[] = true;
+  if (corsOrigin) {
+    if (corsOrigin === '*') {
+      origin = true;
+    } else if (corsOrigin.includes(',')) {
+      origin = corsOrigin.split(',').map((o) => o.trim());
+    } else {
+      origin = corsOrigin;
+    }
+  }
+  app.enableCors({
+    origin,
+    credentials: true,
+  });
+
+  app.useGlobalPipes(
+    new ValidationPipe({
+      whitelist: true,
+      forbidNonWhitelisted: true,
+      transform: true,
+      transformOptions: { enableImplicitConversion: true },
+    }),
+  );
+
+  app.setGlobalPrefix('api');
+  app.enableVersioning({
+    type: VersioningType.URI,
+    defaultVersion: '1',
+  });
+
+  const swaggerEnabled = configService.get<boolean>('SWAGGER_ENABLED') ?? true;
+  if (swaggerEnabled) {
+    const swaggerConfig = new DocumentBuilder()
+      .setTitle('Shelf API')
+      .setDescription('Shelf API endpoints and data schemas')
+      .setVersion('1.0')
+      .addBearerAuth()
+      .build();
+    const document = SwaggerModule.createDocument(app, swaggerConfig);
+    SwaggerModule.setup('api/docs', app, document, {
+      swaggerOptions: { persistAuthorization: true },
+    });
+  }
+
+  app.enableShutdownHooks();
+
   const port = configService.get<number>('PORT') ?? 3000;
   await app.listen(port);
 }

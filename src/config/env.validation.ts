@@ -47,6 +47,18 @@ export class EnvironmentVariables {
   @IsBoolean()
   @IsOptional()
   DB_SYNCHRONIZE?: boolean;
+
+  @IsString()
+  @IsOptional()
+  CORS_ORIGIN?: string;
+
+  @Transform(({ value }) => {
+    if (value === undefined || value === null || value === '') return undefined;
+    return value === 'true' || value === true;
+  })
+  @IsBoolean()
+  @IsOptional()
+  SWAGGER_ENABLED?: boolean;
 }
 
 export function validate(config: Record<string, any>) {
