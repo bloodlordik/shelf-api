@@ -1,0 +1,20 @@
+{
+  "mcpServers": {
+    "postgres-dev": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-postgres",
+        "postgresql://postgres:postgres@localhost:5432/shelf_dev_db"
+      ]
+    },
+    "postgres-prod": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-postgres",
+        "postgresql://postgres:postgres_prod_secret@localhost:5433/shelf_prod_db"
+      ]
+    }
+  }
+}

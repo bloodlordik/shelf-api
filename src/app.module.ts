@@ -4,11 +4,17 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { validate, Environment } from './config/env.validation';
+import { HealthModule } from './health/health.module';
 
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
+      envFilePath: [
+        `.env.${process.env.NODE_ENV || 'development'}.local`,
+        `.env.${process.env.NODE_ENV || 'development'}`,
+        '.env',
+      ],
       validate,
     }),
     TypeOrmModule.forRootAsync({
@@ -33,6 +39,7 @@ import { validate, Environment } from './config/env.validation';
         };
       },
     }),
+    HealthModule,
   ],
   controllers: [AppController],
   providers: [AppService],

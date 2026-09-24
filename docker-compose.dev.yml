@@ -1,0 +1,35 @@
+name: shelf-dev
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: shelf-postgres-dev
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: shelf_dev_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - shelf_pgdata_dev:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d shelf_dev_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  pgweb:
+    image: sosedoff/pgweb:latest
+    container_name: shelf-pgweb-dev
+    environment:
+      DATABASE_URL: postgres://postgres:postgres@postgres:5432/shelf_dev_db?sslmode=disable
+    ports:
+      - "8081:8081"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  shelf_pgdata_dev:
