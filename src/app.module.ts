@@ -12,7 +12,7 @@ import { AttributesModule } from './modules/attributes/attributes.module';
 import { PartsModule } from './modules/parts/parts.module';
 import { ActorsModule } from './modules/actors/actors.module';
 import { StockModule } from './modules/stock/stock.module';
-
+import { McpModule } from './modules/mcp/mcp.module';
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -54,6 +54,7 @@ import { StockModule } from './modules/stock/stock.module';
     PartsModule,
     ActorsModule,
     StockModule,
+    McpModule,
   ],
   controllers: [AppController],
   providers: [AppService],

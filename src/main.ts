@@ -5,6 +5,7 @@ import helmet from 'helmet';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { AppModule } from './app.module';
 import { TypeOrmExceptionFilter } from './common/filters/typeorm-exception.filter';
+import { McpService } from './modules/mcp/services/mcp.service';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -55,15 +56,19 @@ async function bootstrap() {
     defaultVersion: '1',
   });
 
+  const swaggerConfig = new DocumentBuilder()
+    .setTitle('Shelf API')
+    .setDescription('Shelf API endpoints and data schemas')
+    .setVersion('1.0')
+    .addBearerAuth()
+    .build();
+  const document = SwaggerModule.createDocument(app, swaggerConfig);
+
+  const mcpService = app.get(McpService);
+  mcpService.setOpenApiDocument(document);
+
   const swaggerEnabled = configService.get<boolean>('SWAGGER_ENABLED') ?? true;
   if (swaggerEnabled) {
-    const swaggerConfig = new DocumentBuilder()
-      .setTitle('Shelf API')
-      .setDescription('Shelf API endpoints and data schemas')
-      .setVersion('1.0')
-      .addBearerAuth()
-      .build();
-    const document = SwaggerModule.createDocument(app, swaggerConfig);
     SwaggerModule.setup('api/docs', app, document, {
       swaggerOptions: { persistAuthorization: true },
     });
