@@ -52,8 +52,9 @@ describe('Change History (Stock Movements & Attribute History) E2E Suite', () =>
       defaultVersion: '1',
     });
     await app.init();
-
-    agent = request.agent(app.getHttpServer());
+    await app.listen(0);
+    const serverUrl = await app.getUrl();
+    agent = request.agent(serverUrl);
     dataSource = app.get(DataSource);
     await dataSource.query(
       'TRUNCATE stock_movements, attribute_value_history, actors, parts, attribute_values, attribute_definitions, attribute_options, categories, tags, units, part_tags CASCADE;',

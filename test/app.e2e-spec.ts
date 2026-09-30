@@ -11,6 +11,7 @@ import {
 
 describe('App & Health Endpoints (e2e)', () => {
   let app: INestApplication<App>;
+  let serverUrl: string;
 
   beforeAll(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
@@ -24,6 +25,8 @@ describe('App & Health Endpoints (e2e)', () => {
       defaultVersion: '1',
     });
     await app.init();
+    await app.listen(0);
+    serverUrl = await app.getUrl();
   });
 
   afterAll(async () => {
@@ -33,16 +36,14 @@ describe('App & Health Endpoints (e2e)', () => {
   });
 
   it('/api/v1 (GET)', async () => {
-    const response = await request(app.getHttpServer()).get('/api/v1');
+    const response = await request(serverUrl).get('/api/v1');
     expect(response.status).toBe(200);
     expect(response.text).toBe('Hello World!');
   });
 
   describe('Health Endpoints', () => {
     it('/api/v1/health/live (GET) should return 200 and liveness status', async () => {
-      const response = await request(app.getHttpServer()).get(
-        '/api/v1/health/live',
-      );
+      const response = await request(serverUrl).get('/api/v1/health/live');
 
       expect(response.status).toBe(200);
       const body = response.body as LivenessResponseDto;
@@ -51,9 +52,7 @@ describe('App & Health Endpoints (e2e)', () => {
     });
 
     it('/api/v1/health/ready (GET) should return readiness status', async () => {
-      const response = await request(app.getHttpServer()).get(
-        '/api/v1/health/ready',
-      );
+      const response = await request(serverUrl).get('/api/v1/health/ready');
 
       expect([200, 503]).toContain(response.status);
       const body = response.body as ReadinessResponseDto;
@@ -65,7 +64,7 @@ describe('App & Health Endpoints (e2e)', () => {
     });
 
     it('/api/v1/health (GET) should return detailed health response', async () => {
-      const response = await request(app.getHttpServer()).get('/api/v1/health');
+      const response = await request(serverUrl).get('/api/v1/health');
 
       expect([200, 503]).toContain(response.status);
       const body = response.body as HealthResponseDto;

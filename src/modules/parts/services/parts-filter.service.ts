@@ -155,10 +155,42 @@ export class PartsFilterService {
         }
       }
     }
+    // 5. Quantity filtering
+    if (filterDto.minQuantity !== undefined) {
+      qb.andWhere('part.quantity >= :minQuantity', {
+        minQuantity: filterDto.minQuantity,
+      });
+    }
+    if (filterDto.maxQuantity !== undefined) {
+      qb.andWhere('part.quantity <= :maxQuantity', {
+        maxQuantity: filterDto.maxQuantity,
+      });
+    }
 
-    qb.orderBy('part.createdAt', 'DESC');
+    // 6. Dynamic Sorting
+    const sortFieldMap: Record<string, string> = {
+      createdAt: 'part.createdAt',
+      quantity: 'part.quantity',
+      name: 'part.name',
+      sku: 'part.sku',
+    };
+    const sortField =
+      filterDto.sortBy && sortFieldMap[filterDto.sortBy]
+        ? sortFieldMap[filterDto.sortBy]
+        : 'part.createdAt';
+    const sortOrder =
+      filterDto.sortOrder && filterDto.sortOrder.toUpperCase() === 'ASC'
+        ? 'ASC'
+        : 'DESC';
+
+    if (filterDto.sortBy === 'quantity') {
+      qb.orderBy('part.quantity', sortOrder);
+      qb.addOrderBy('part.name', 'ASC');
+    } else {
+      qb.orderBy(sortField, sortOrder);
+    }
+
     qb.skip(skip).take(limit);
-
     const [items, total] = await qb.getManyAndCount();
 
     return new PaginatedResponseDto(items, total, page, limit);

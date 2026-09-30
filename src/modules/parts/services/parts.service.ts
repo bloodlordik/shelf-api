@@ -15,6 +15,7 @@ import {
 } from '../dto/create-part.dto';
 import { UpdatePartDto } from '../dto/update-part.dto';
 import { ReplacePartAttributesDto } from '../dto/replace-part-attributes.dto';
+import { PartsSummaryDto } from '../dto/parts-summary.dto';
 import {
   AttributesValidationService,
   ValidatedAttributeRecord,
@@ -370,5 +371,32 @@ export class PartsService {
   async remove(id: string): Promise<void> {
     const part = await this.findOne(id);
     await this.partsRepository.remove(part);
+  }
+
+  async getSummary(): Promise<PartsSummaryDto> {
+    const totalParts = await this.partsRepository.count();
+
+    const sumResult = await this.partsRepository
+      .createQueryBuilder('p')
+      .select('COALESCE(SUM(p.quantity), 0)', 'total')
+      .getRawOne<{ total: string | number }>();
+    const totalQuantity = Number(sumResult?.total || 0);
+
+    const lowStockCount = await this.partsRepository
+      .createQueryBuilder('p')
+      .where('p.quantity <= :threshold', { threshold: 5 })
+      .getCount();
+
+    const outOfStockCount = await this.partsRepository
+      .createQueryBuilder('p')
+      .where('p.quantity = :zero', { zero: 0 })
+      .getCount();
+
+    return {
+      totalParts,
+      totalQuantity,
+      lowStockCount,
+      outOfStockCount,
+    };
   }
 }

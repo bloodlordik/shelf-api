@@ -27,6 +27,7 @@ import {
 import { UpdatePartDto } from './dto/update-part.dto';
 import { ReplacePartAttributesDto } from './dto/replace-part-attributes.dto';
 import { PartFilterDto } from './dto/part-filter.dto';
+import { PartsSummaryDto } from './dto/parts-summary.dto';
 import { PartCardResponseDto } from './dto/part-card-response.dto';
 import { CreateStockMovementDto } from '../stock/dto/create-stock-movement.dto';
 import { StockMovementFilterDto } from '../stock/dto/stock-movement-filter.dto';
@@ -79,6 +80,19 @@ export class PartsController {
     @Req() req: Request,
   ): Promise<PaginatedResponseDto<Part>> {
     return this.partsFilterService.filterParts(filterDto, req.query);
+  }
+
+  @Get('summary')
+  @ApiOperation({
+    summary: 'Получить сводную статистику по номенклатуре и остаткам',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Сводная статистика по деталям',
+    type: PartsSummaryDto,
+  })
+  getSummary(): Promise<PartsSummaryDto> {
+    return this.partsService.getSummary();
   }
 
   @Get(':id')

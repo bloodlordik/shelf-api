@@ -18,7 +18,8 @@ async function bootstrap() {
           defaultSrc: [`'self'`],
           styleSrc: [`'self'`, `'unsafe-inline'`],
           imgSrc: [`'self'`, 'data:', 'validator.swagger.io'],
-          scriptSrc: [`'self'`, `https: 'unsafe-inline'`],
+          scriptSrc: [`'self'`, `'unsafe-inline'`, `'unsafe-eval'`],
+          scriptSrcAttr: [`'unsafe-inline'`],
         },
       },
     }),
@@ -50,7 +51,9 @@ async function bootstrap() {
   );
   app.useGlobalFilters(new TypeOrmExceptionFilter());
 
-  app.setGlobalPrefix('api');
+  app.setGlobalPrefix('api', {
+    exclude: ['admin', 'admin/{*path}', 'health', 'health/{*path}'],
+  });
   app.enableVersioning({
     type: VersioningType.URI,
     defaultVersion: '1',

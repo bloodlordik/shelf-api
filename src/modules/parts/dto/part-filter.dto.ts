@@ -2,6 +2,7 @@ import { ApiPropertyOptional } from '@nestjs/swagger';
 import { Transform, Type } from 'class-transformer';
 import {
   IsBoolean,
+  IsIn,
   IsInt,
   IsObject,
   IsOptional,
@@ -108,6 +109,44 @@ export class PartFilterDto {
     },
   )
   attr?: Record<string, unknown>;
+
+  @ApiPropertyOptional({
+    description: 'Минимальный остаток на складе',
+    example: 0,
+  })
+  @Type(() => Number)
+  @IsInt()
+  @Min(0)
+  @IsOptional()
+  minQuantity?: number;
+
+  @ApiPropertyOptional({
+    description: 'Максимальный остаток на складе',
+    example: 5,
+  })
+  @Type(() => Number)
+  @IsInt()
+  @Min(0)
+  @IsOptional()
+  maxQuantity?: number;
+
+  @ApiPropertyOptional({
+    description: 'Поле сортировки',
+    enum: ['createdAt', 'quantity', 'name', 'sku'],
+    example: 'createdAt',
+  })
+  @IsOptional()
+  @IsIn(['createdAt', 'quantity', 'name', 'sku'])
+  sortBy?: 'createdAt' | 'quantity' | 'name' | 'sku';
+
+  @ApiPropertyOptional({
+    description: 'Направление сортировки',
+    enum: ['ASC', 'DESC'],
+    example: 'DESC',
+  })
+  @IsOptional()
+  @IsIn(['ASC', 'DESC', 'asc', 'desc'])
+  sortOrder?: 'ASC' | 'DESC' | 'asc' | 'desc';
 
   get skip(): number {
     return (this.page - 1) * this.limit;
