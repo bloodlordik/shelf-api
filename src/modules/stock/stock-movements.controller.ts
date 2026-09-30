@@ -7,7 +7,13 @@ import {
   HttpStatus,
   HttpCode,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiPropertyOptional,
+} from '@nestjs/swagger';
+import { IsOptional, IsUUID } from 'class-validator';
 import { StockMovementsService } from './services/stock-movements.service';
 import { GlobalStockMovementFilterDto } from './dto/global-stock-movement-filter.dto';
 import { StockMovementResponseDto } from './dto/stock-movement-response.dto';
@@ -16,6 +22,12 @@ import { PaginatedResponseDto } from '../../common/dto/paginated-response.dto';
 import { DomainException } from '../../common/exceptions/domain.exception';
 
 export class GlobalCreateStockMovementDto extends CreateStockMovementDto {
+  @ApiPropertyOptional({
+    description: 'UUID детали',
+    example: '123e4567-e89b-12d3-a456-426614174000',
+  })
+  @IsUUID()
+  @IsOptional()
   partId?: string;
 }
 

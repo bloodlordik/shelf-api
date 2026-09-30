@@ -61,12 +61,6 @@ export class StockMovementsService {
 
       switch (input.type) {
         case StockMovementType.RECEIPT: {
-          if (!input.referenceDoc || input.referenceDoc.trim() === '') {
-            throw new DomainException(
-              'referenceDoc is required for receipt movement',
-              HttpStatus.BAD_REQUEST,
-            );
-          }
           if (!input.quantity || input.quantity <= 0) {
             throw new DomainException(
               'quantity must be greater than 0 for receipt movement',
@@ -78,12 +72,6 @@ export class StockMovementsService {
         }
 
         case StockMovementType.WRITEOFF: {
-          if (!input.reason || input.reason.trim() === '') {
-            throw new DomainException(
-              'reason is required for writeoff movement',
-              HttpStatus.BAD_REQUEST,
-            );
-          }
           if (!input.quantity || input.quantity <= 0) {
             throw new DomainException(
               'quantity must be greater than 0 for writeoff movement',
@@ -95,12 +83,6 @@ export class StockMovementsService {
         }
 
         case StockMovementType.CORRECTION: {
-          if (!input.reason || input.reason.trim() === '') {
-            throw new DomainException(
-              'reason is required for correction movement',
-              HttpStatus.BAD_REQUEST,
-            );
-          }
           if (input.targetQuantity !== undefined) {
             calculatedDelta = input.targetQuantity - part.quantity;
           } else if (input.quantity !== undefined) {
@@ -126,15 +108,6 @@ export class StockMovementsService {
         }
 
         case StockMovementType.TRANSFER_OUT: {
-          if (
-            (!input.reason || input.reason.trim() === '') &&
-            (!input.referenceDoc || input.referenceDoc.trim() === '')
-          ) {
-            throw new DomainException(
-              'reason or referenceDoc is required for transfer_out movement',
-              HttpStatus.BAD_REQUEST,
-            );
-          }
           if (!input.quantity || input.quantity <= 0) {
             throw new DomainException(
               'quantity must be greater than 0 for transfer_out movement',
@@ -146,15 +119,6 @@ export class StockMovementsService {
         }
 
         case StockMovementType.TRANSFER_IN: {
-          if (
-            (!input.reason || input.reason.trim() === '') &&
-            (!input.referenceDoc || input.referenceDoc.trim() === '')
-          ) {
-            throw new DomainException(
-              'reason or referenceDoc is required for transfer_in movement',
-              HttpStatus.BAD_REQUEST,
-            );
-          }
           if (!input.quantity || input.quantity <= 0) {
             throw new DomainException(
               'quantity must be greater than 0 for transfer_in movement',
@@ -164,7 +128,6 @@ export class StockMovementsService {
           calculatedDelta = input.quantity;
           break;
         }
-
         default:
           throw new DomainException(
             `Unsupported movement type: ${String(input.type)}`,
@@ -190,8 +153,8 @@ export class StockMovementsService {
         movementType: input.type,
         quantityDelta: calculatedDelta,
         quantityAfter: newQuantity,
-        reason: input.reason ? input.reason.trim() : null,
-        referenceDoc: input.referenceDoc ? input.referenceDoc.trim() : null,
+        reason: input.reason?.trim() || null,
+        referenceDoc: input.referenceDoc?.trim() || null,
         performedBy: input.actorId,
       });
       const savedMovement = await txManager.save(StockMovement, movement);

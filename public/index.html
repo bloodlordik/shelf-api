@@ -1147,17 +1147,15 @@
             '<label class="form-label">Целевой остаток (фактическое наличие)</label>' +
             '<input type="number" id="mov_targetQuantity" min="0" class="form-control" placeholder="Напр. 45">' +
           '</div>' +
-
           '<div class="form-group">' +
-            '<label class="form-label" id="mov_doc_label">Номер документа / накладной</label>' +
+            '<label class="form-label" id="mov_doc_label">Номер документа / накладной (необязательно)</label>' +
             '<input type="text" id="mov_referenceDoc" class="form-control" placeholder="ТТН-12345">' +
           '</div>' +
 
           '<div class="form-group">' +
-            '<label class="form-label" id="mov_reason_label">Причина / основание</label>' +
+            '<label class="form-label" id="mov_reason_label">Причина / основание (необязательно)</label>' +
             '<input type="text" id="mov_reason" class="form-control" placeholder="Поступление от поставщика / списание в производство">' +
           '</div>' +
-
           '<div class="form-group">' +
             '<label class="form-label">ID актора (ответственного)</label>' +
             '<input type="number" id="mov_actorId" min="1" class="form-control" value="1">' +
@@ -1181,20 +1179,20 @@
       if (type === 'correction') {
         qtyGroup.style.display = 'none';
         targetGroup.style.display = 'block';
-        reasonLabel.innerHTML = 'Причина инвентаризации <span style="color:var(--danger)">*</span>';
-        docLabel.innerHTML = 'Акт инвентаризации';
+        reasonLabel.innerHTML = 'Причина инвентаризации (необязательно)';
+        docLabel.innerHTML = 'Акт инвентаризации (необязательно)';
       } else {
         qtyGroup.style.display = 'block';
         targetGroup.style.display = 'none';
         if (type === 'receipt') {
-          docLabel.innerHTML = 'Накладная / ТТН <span style="color:var(--danger)">*</span>';
-          reasonLabel.innerHTML = 'Причина / основание';
+          docLabel.innerHTML = 'Накладная / ТТН (необязательно)';
+          reasonLabel.innerHTML = 'Причина / основание (необязательно)';
         } else if (type === 'writeoff') {
-          docLabel.innerHTML = 'Номер акта списания';
-          reasonLabel.innerHTML = 'Причина списания <span style="color:var(--danger)">*</span>';
+          docLabel.innerHTML = 'Номер акта списания (необязательно)';
+          reasonLabel.innerHTML = 'Причина списания (необязательно)';
         } else {
-          docLabel.innerHTML = 'Номер документа';
-          reasonLabel.innerHTML = 'Причина перемещения';
+          docLabel.innerHTML = 'Номер документа (необязательно)';
+          reasonLabel.innerHTML = 'Причина перемещения (необязательно)';
         }
       }
     }

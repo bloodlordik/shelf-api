@@ -3,6 +3,7 @@ import {
   IsEnum,
   IsInt,
   IsNotEmpty,
+  IsOptional,
   IsString,
   MaxLength,
   Min,
@@ -53,34 +54,19 @@ export class CreateStockMovementDto {
 
   @ApiPropertyOptional({
     example: 'Поступление от поставщика',
-    description: 'Причина движения (обязательна для writeoff и correction)',
+    description: 'Причина движения (необязательное поле)',
   })
-  @ValidateIf(
-    (o: CreateStockMovementDto) =>
-      o.type === StockMovementType.WRITEOFF ||
-      o.type === StockMovementType.CORRECTION ||
-      ((o.type === StockMovementType.TRANSFER_IN ||
-        o.type === StockMovementType.TRANSFER_OUT) &&
-        !o.referenceDoc),
-  )
+  @IsOptional()
   @IsString()
-  @IsNotEmpty()
   @MaxLength(500)
   reason?: string;
 
   @ApiPropertyOptional({
     example: 'ТТН-2026-09-00451',
-    description: 'Номер документа (обязателен для receipt)',
+    description: 'Номер документа (необязательное поле)',
   })
-  @ValidateIf(
-    (o: CreateStockMovementDto) =>
-      o.type === StockMovementType.RECEIPT ||
-      ((o.type === StockMovementType.TRANSFER_IN ||
-        o.type === StockMovementType.TRANSFER_OUT) &&
-        !o.reason),
-  )
+  @IsOptional()
   @IsString()
-  @IsNotEmpty()
   @MaxLength(255)
   referenceDoc?: string;
 }

@@ -130,14 +130,19 @@ describe('StockMovementsService', () => {
       expect(movement.referenceDoc).toBe('ТТН-12345');
     });
 
-    it('should reject RECEIPT without referenceDoc', async () => {
-      await expect(
-        service.applyMovement('part-uuid-1', {
-          actorId: 42,
-          type: StockMovementType.RECEIPT,
-          quantity: 100,
-        }),
-      ).rejects.toThrow(DomainException);
+    it('should process RECEIPT without referenceDoc and set referenceDoc to null', async () => {
+      mockPart.quantity = 50;
+
+      const movement = await service.applyMovement('part-uuid-1', {
+        actorId: 42,
+        type: StockMovementType.RECEIPT,
+        quantity: 100,
+      });
+
+      expect(movement.movementType).toBe(StockMovementType.RECEIPT);
+      expect(movement.quantityDelta).toBe(100);
+      expect(movement.quantityAfter).toBe(150);
+      expect(movement.referenceDoc).toBeNull();
     });
 
     it('should process WRITEOFF movement and decrease stock', async () => {
@@ -155,14 +160,18 @@ describe('StockMovementsService', () => {
       expect(movement.reason).toBe('Брак при монтаже');
     });
 
-    it('should reject WRITEOFF without reason', async () => {
-      await expect(
-        service.applyMovement('part-uuid-1', {
-          actorId: 42,
-          type: StockMovementType.WRITEOFF,
-          quantity: 20,
-        }),
-      ).rejects.toThrow(DomainException);
+    it('should process WRITEOFF without reason and set reason to null', async () => {
+      mockPart.quantity = 50;
+
+      const movement = await service.applyMovement('part-uuid-1', {
+        actorId: 42,
+        type: StockMovementType.WRITEOFF,
+        quantity: 20,
+      });
+
+      expect(movement.quantityDelta).toBe(-20);
+      expect(movement.quantityAfter).toBe(30);
+      expect(movement.reason).toBeNull();
     });
 
     it('should reject WRITEOFF when stock is insufficient (quantity_after < 0)', async () => {
@@ -204,6 +213,19 @@ describe('StockMovementsService', () => {
 
       expect(movement.quantityDelta).toBe(-20);
       expect(movement.quantityAfter).toBe(30);
+    });
+    it('should process CORRECTION without reason and set reason to null', async () => {
+      mockPart.quantity = 50;
+
+      const movement = await service.applyMovement('part-uuid-1', {
+        actorId: 42,
+        type: StockMovementType.CORRECTION,
+        targetQuantity: 65,
+      });
+
+      expect(movement.quantityDelta).toBe(15);
+      expect(movement.quantityAfter).toBe(65);
+      expect(movement.reason).toBeNull();
     });
 
     it('should reject CORRECTION when delta is 0', async () => {

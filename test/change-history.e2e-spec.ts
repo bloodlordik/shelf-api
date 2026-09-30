@@ -186,18 +186,27 @@ describe('Change History (Stock Movements & Attribute History) E2E Suite', () =>
       expect((partRes.body as Part).quantity).toBe(100);
     });
 
-    it('POST /api/v1/parts/:id/movements - receipt without referenceDoc should be rejected (400)', async () => {
+    it('POST /api/v1/parts/:id/movements - receipt without referenceDoc and reason should succeed (201)', async () => {
+      const partRes = await agent.post('/api/v1/parts').send({
+        sku: 'OPT-FLD-001',
+        name: 'Optional Fields Part',
+      });
+      const optPartId = (partRes.body as Part).id;
+
       const res = await agent
-        .post(`/api/v1/parts/${testPartId}/movements`)
+        .post(`/api/v1/parts/${optPartId}/movements`)
         .send({
-          actorId: 101,
+          actorId: 199,
           type: StockMovementType.RECEIPT,
           quantity: 50,
         });
 
-      expect(res.status).toBe(400);
+      expect(res.status).toBe(201);
+      const movement = res.body as StockMovementResponseDto;
+      expect(movement.referenceDoc).toBeNull();
+      expect(movement.reason).toBeNull();
+      expect(movement.quantityAfter).toBe(50);
     });
-
     it('POST /api/v1/parts/:id/movements - writeoff (-30, actorId: 102) updates quantity to 70', async () => {
       const res = await agent
         .post(`/api/v1/parts/${testPartId}/movements`)
@@ -218,18 +227,24 @@ describe('Change History (Stock Movements & Attribute History) E2E Suite', () =>
       expect((partRes.body as Part).quantity).toBe(70);
     });
 
-    it('POST /api/v1/parts/:id/movements - writeoff without reason should be rejected (400)', async () => {
+    it('POST /api/v1/parts/:id/movements - writeoff without reason should succeed (201)', async () => {
+      const partRes = await agent.get('/api/v1/parts?search=OPT-FLD-001');
+      const paginated = partRes.body as PaginatedResponseDto<Part>;
+      const optPartId = paginated.data[0].id;
       const res = await agent
-        .post(`/api/v1/parts/${testPartId}/movements`)
+        .post(`/api/v1/parts/${optPartId}/movements`)
         .send({
-          actorId: 102,
+          actorId: 198,
           type: StockMovementType.WRITEOFF,
           quantity: 10,
         });
 
-      expect(res.status).toBe(400);
+      expect(res.status).toBe(201);
+      const movement = res.body as StockMovementResponseDto;
+      expect(movement.reason).toBeNull();
+      expect(movement.referenceDoc).toBeNull();
+      expect(movement.quantityAfter).toBe(40);
     });
-
     it('POST /api/v1/parts/:id/movements - correction (target: 85, actorId: 101) sets quantity to 85 (delta: +15)', async () => {
       const res = await agent
         .post(`/api/v1/parts/${testPartId}/movements`)

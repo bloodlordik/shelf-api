@@ -32,8 +32,8 @@
     - Отрицательное при списании (`writeoff`, `transfer_out`).
     - Произвольное при корректировке (`correction`).
   - `quantityAfter: number` — Итоговый остаток детали сразу после фиксации движения.
-  - `reason?: string | null` — Текстовая причина операции (`varchar(500)`), например `"Брак при монтаже печатной платы"`.
-  - `referenceDoc?: string | null` — Ссылка на сопроводительный документ (`varchar(255)`), например `"ТТН-2026-09-00123"`.
+  - `reason?: string | null` — Текстовая причина операции (`varchar(500)`, опционально), например `"Брак при монтаже печатной платы"`.
+  - `referenceDoc?: string | null` — Ссылка на сопроводительный документ (`varchar(255)`, опционально), например `"ТТН-2026-09-00123"`.
   - `performedBy: number` — Целочисленный ID актора (`FK` на `Actor`, `onDelete: 'RESTRICT'`).
   - `performedAt: Date` — Временная метка проведения операции (`timestamptz`, default `CURRENT_TIMESTAMP`).
 
@@ -55,6 +55,8 @@
    Если `currentQuantity + quantityDelta < 0`, транзакция прерывается с ошибкой `DomainException: "Insufficient stock. Current: X, requested delta: Y"` (HTTP 400).
 5. **Атомарная фиксация:**
    В рамках одной транзакции сохраняется запись `StockMovement` и обновляется поле `quantity` сущности `Part`.
+6. **Необязательные поля сопроводительной информации:**
+   Поля `reason` и `referenceDoc` являются полностью опциональными для всех типов движений (`receipt`, `writeoff`, `correction`, `transfer_in`, `transfer_out`). При передаче пустой строки они нормализуются в `null`.
 
 ---
 

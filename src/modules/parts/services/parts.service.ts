@@ -9,6 +9,8 @@ import { Part } from '../entities/part.entity';
 import { AttributeValue } from '../entities/attribute-value.entity';
 import { Tag } from '../../tags/entities/tag.entity';
 import { Category } from '../../categories/entities/category.entity';
+import { StockMovement } from '../../stock/entities/stock-movement.entity';
+import { AttributeValueHistory } from '../../attributes/entities/attribute-value-history.entity';
 import {
   CreatePartDto,
   PartAttributeValueInputDto,
@@ -370,7 +372,12 @@ export class PartsService {
 
   async remove(id: string): Promise<void> {
     const part = await this.findOne(id);
-    await this.partsRepository.remove(part);
+    await this.dataSource.transaction(async (manager) => {
+      await manager.getRepository(StockMovement).delete({ partId: id });
+      await manager.getRepository(AttributeValueHistory).delete({ partId: id });
+      await manager.getRepository(AttributeValue).delete({ partId: id });
+      await manager.remove(Part, part);
+    });
   }
 
   async getSummary(): Promise<PartsSummaryDto> {
