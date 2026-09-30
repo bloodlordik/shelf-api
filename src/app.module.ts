@@ -5,6 +5,13 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { validate, Environment } from './config/env.validation';
 import { HealthModule } from './health/health.module';
+import { UnitsModule } from './modules/units/units.module';
+import { CategoriesModule } from './modules/categories/categories.module';
+import { TagsModule } from './modules/tags/tags.module';
+import { AttributesModule } from './modules/attributes/attributes.module';
+import { PartsModule } from './modules/parts/parts.module';
+import { ActorsModule } from './modules/actors/actors.module';
+import { StockModule } from './modules/stock/stock.module';
 
 @Module({
   imports: [
@@ -40,6 +47,13 @@ import { HealthModule } from './health/health.module';
       },
     }),
     HealthModule,
+    UnitsModule,
+    CategoriesModule,
+    TagsModule,
+    AttributesModule,
+    PartsModule,
+    ActorsModule,
+    StockModule,
   ],
   controllers: [AppController],
   providers: [AppService],

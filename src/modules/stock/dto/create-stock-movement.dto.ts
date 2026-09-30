@@ -1,0 +1,86 @@
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import {
+  IsEnum,
+  IsInt,
+  IsNotEmpty,
+  IsString,
+  MaxLength,
+  Min,
+  ValidateIf,
+} from 'class-validator';
+import { StockMovementType } from '../enums/stock-movement-type.enum';
+
+export class CreateStockMovementDto {
+  @ApiProperty({
+    example: 42,
+    description:
+      'Целочисленный ID актора (пользователя), выполняющего движение',
+  })
+  @IsInt()
+  @Min(1)
+  @IsNotEmpty()
+  actorId!: number;
+
+  @ApiProperty({ enum: StockMovementType, example: StockMovementType.RECEIPT })
+  @IsEnum(StockMovementType)
+  @IsNotEmpty()
+  type!: StockMovementType;
+
+  @ApiPropertyOptional({
+    example: 50,
+    description:
+      'Количество для receipt, writeoff, transfer_in, transfer_out (положительное целое число)',
+  })
+  @ValidateIf(
+    (o: CreateStockMovementDto) =>
+      o.type !== StockMovementType.CORRECTION || o.targetQuantity === undefined,
+  )
+  @IsInt()
+  @Min(1)
+  quantity?: number;
+
+  @ApiPropertyOptional({
+    example: 120,
+    description: 'Целевой остаток при инвентаризации (только для correction)',
+  })
+  @ValidateIf(
+    (o: CreateStockMovementDto) =>
+      o.type === StockMovementType.CORRECTION && o.quantity === undefined,
+  )
+  @IsInt()
+  @Min(0)
+  targetQuantity?: number;
+
+  @ApiPropertyOptional({
+    example: 'Поступление от поставщика',
+    description: 'Причина движения (обязательна для writeoff и correction)',
+  })
+  @ValidateIf(
+    (o: CreateStockMovementDto) =>
+      o.type === StockMovementType.WRITEOFF ||
+      o.type === StockMovementType.CORRECTION ||
+      ((o.type === StockMovementType.TRANSFER_IN ||
+        o.type === StockMovementType.TRANSFER_OUT) &&
+        !o.referenceDoc),
+  )
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(500)
+  reason?: string;
+
+  @ApiPropertyOptional({
+    example: 'ТТН-2026-09-00451',
+    description: 'Номер документа (обязателен для receipt)',
+  })
+  @ValidateIf(
+    (o: CreateStockMovementDto) =>
+      o.type === StockMovementType.RECEIPT ||
+      ((o.type === StockMovementType.TRANSFER_IN ||
+        o.type === StockMovementType.TRANSFER_OUT) &&
+        !o.reason),
+  )
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(255)
+  referenceDoc?: string;
+}

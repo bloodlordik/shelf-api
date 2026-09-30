@@ -1,0 +1,63 @@
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Query,
+  HttpStatus,
+  HttpCode,
+} from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
+import { StockMovementsService } from './services/stock-movements.service';
+import { GlobalStockMovementFilterDto } from './dto/global-stock-movement-filter.dto';
+import { StockMovementResponseDto } from './dto/stock-movement-response.dto';
+import { CreateStockMovementDto } from './dto/create-stock-movement.dto';
+import { PaginatedResponseDto } from '../../common/dto/paginated-response.dto';
+import { DomainException } from '../../common/exceptions/domain.exception';
+
+export class GlobalCreateStockMovementDto extends CreateStockMovementDto {
+  partId?: string;
+}
+
+@ApiTags('stock')
+@Controller('stock')
+export class StockMovementsController {
+  constructor(private readonly stockMovementsService: StockMovementsService) {}
+
+  @Get('movements')
+  @ApiOperation({
+    summary: 'Глобальный журнал складских движений по всем деталям',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Пагинированный список складских движений',
+    type: PaginatedResponseDto<StockMovementResponseDto>,
+  })
+  getGlobalMovements(
+    @Query() filterDto: GlobalStockMovementFilterDto,
+  ): Promise<PaginatedResponseDto<StockMovementResponseDto>> {
+    return this.stockMovementsService.getGlobalMovements(filterDto);
+  }
+
+  @Post('movements')
+  @HttpCode(HttpStatus.CREATED)
+  @ApiOperation({
+    summary: 'Создание складского движения (при наличии partId в теле)',
+  })
+  @ApiResponse({
+    status: 201,
+    description: 'Движение успешно зафиксировано',
+    type: StockMovementResponseDto,
+  })
+  createMovement(
+    @Body() dto: GlobalCreateStockMovementDto,
+  ): Promise<StockMovementResponseDto> {
+    if (!dto.partId) {
+      throw new DomainException(
+        'partId is required when creating movement via /stock/movements',
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+    return this.stockMovementsService.applyMovement(dto.partId, dto);
+  }
+}
