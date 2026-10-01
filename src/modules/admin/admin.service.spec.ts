@@ -8,23 +8,17 @@ import { AttributeDefinitionsService } from '../attributes/services/attributes-d
 import { UnitsService } from '../units/units.service';
 import { StockMovementsService } from '../stock/services/stock-movements.service';
 import { StockMovementType } from '../stock/enums/stock-movement-type.enum';
-import { PaginatedResponseDto } from '../../common/dto/paginated-response.dto';
 import { Part } from '../parts/entities/part.entity';
-import { StockMovementResponseDto } from '../stock/dto/stock-movement-response.dto';
-import { Category } from '../categories/entities/category.entity';
-import { Tag } from '../tags/entities/tag.entity';
-import { AttributeDefinition } from '../attributes/entities/attribute-definition.entity';
-import { Unit } from '../units/entities/unit.entity';
 
 describe('AdminService', () => {
   let service: AdminService;
 
   let partsServiceMock: { getSummary: jest.Mock };
   let partsFilterServiceMock: { filterParts: jest.Mock };
-  let categoriesServiceMock: { findAll: jest.Mock };
-  let tagsServiceMock: { findAll: jest.Mock };
-  let attrDefsServiceMock: { findAllDefinitions: jest.Mock };
-  let unitsServiceMock: { findAll: jest.Mock };
+  let categoriesServiceMock: { count: jest.Mock };
+  let tagsServiceMock: { count: jest.Mock };
+  let attrDefsServiceMock: { countDefinitions: jest.Mock };
+  let unitsServiceMock: { count: jest.Mock };
   let stockMovementsServiceMock: { getGlobalMovements: jest.Mock };
 
   beforeEach(async () => {
@@ -38,87 +32,78 @@ describe('AdminService', () => {
     };
 
     partsFilterServiceMock = {
-      filterParts: jest.fn().mockResolvedValue(
-        new PaginatedResponseDto<Part>(
-          [
-            {
-              id: 'p-1',
-              name: 'Resistor 10k',
-              sku: 'RES-10K',
-              quantity: 2,
-              category: { id: 'c-1', name: 'Resistors' } as Category,
-              tags: [],
-            } as unknown as Part,
-            {
-              id: 'p-2',
-              name: 'Capacitor 100nF',
-              sku: 'CAP-100N',
-              quantity: 0,
-              category: null,
-              tags: [],
-            } as unknown as Part,
-          ],
-          2,
-          1,
-          10,
-        ),
-      ),
+      filterParts: jest.fn().mockResolvedValue({
+        data: [
+          {
+            id: 'p-1',
+            name: 'Resistor 10k',
+            sku: 'RES-10K',
+            quantity: 2,
+            category: { id: 'c-1', name: 'Resistors' },
+            tags: [],
+          } as unknown as Part,
+          {
+            id: 'p-2',
+            name: 'Capacitor 100nF',
+            sku: 'CAP-100N',
+            quantity: 0,
+            category: null,
+            tags: [],
+          } as unknown as Part,
+        ],
+        meta: {
+          total: 2,
+          page: 1,
+          limit: 10,
+          totalPages: 1,
+          hasNextPage: false,
+          hasPreviousPage: false,
+        },
+      }),
     };
 
     categoriesServiceMock = {
-      findAll: jest
-        .fn()
-        .mockResolvedValue(new PaginatedResponseDto<Category>([], 4, 1, 1)),
+      count: jest.fn().mockResolvedValue(4),
     };
 
     tagsServiceMock = {
-      findAll: jest.fn().mockResolvedValue([
-        { id: 't-1', name: 'SMD' },
-        { id: 't-2', name: 'DIP' },
-        { id: 't-3', name: '0805' },
-        { id: 't-4', name: '0603' },
-        { id: 't-5', name: 'Passives' },
-        { id: 't-6', name: 'Actives' },
-      ] as Tag[]),
+      count: jest.fn().mockResolvedValue(6),
     };
 
     attrDefsServiceMock = {
-      findAllDefinitions: jest
-        .fn()
-        .mockResolvedValue(
-          new Array(8).fill({ id: 'attr' }) as AttributeDefinition[],
-        ),
+      countDefinitions: jest.fn().mockResolvedValue(8),
     };
 
     unitsServiceMock = {
-      findAll: jest
-        .fn()
-        .mockResolvedValue(new Array(5).fill({ id: 'unit' }) as Unit[]),
+      count: jest.fn().mockResolvedValue(5),
     };
 
     stockMovementsServiceMock = {
-      getGlobalMovements: jest.fn().mockResolvedValue(
-        new PaginatedResponseDto<StockMovementResponseDto>(
-          [
-            {
-              id: 'm-1',
-              partId: 'p-1',
-              partSku: 'RES-10K',
-              partName: 'Resistor 10k',
-              movementType: StockMovementType.RECEIPT,
-              quantityDelta: 50,
-              quantityAfter: 50,
-              reason: 'Initial stock',
-              referenceDoc: 'DOC-01',
-              performedBy: 1,
-              performedAt: new Date('2026-09-30T10:00:00.000Z'),
-            },
-          ],
-          22,
-          1,
-          10,
-        ),
-      ),
+      getGlobalMovements: jest.fn().mockResolvedValue({
+        data: [
+          {
+            id: 'm-1',
+            partId: 'p-1',
+            partSku: 'RES-10K',
+            partName: 'Resistor 10k',
+            movementType: StockMovementType.RECEIPT,
+            quantityDelta: 50,
+            quantityAfter: 50,
+            reason: 'Initial stock',
+            referenceDoc: 'DOC-01',
+            performedBy: 1,
+            performedAt: new Date('2026-09-30T10:00:00.000Z'),
+          },
+        ],
+        meta: {
+          total: 22,
+          page: 1,
+          limit: 10,
+          totalPages: 3,
+          hasNextPage: true,
+          hasPreviousPage: false,
+        },
+      }),
     };
 
     const module: TestingModule = await Test.createTestingModule({

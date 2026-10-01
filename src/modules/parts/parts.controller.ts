@@ -20,10 +20,7 @@ import { PartsCardFacade } from './services/parts-card.facade';
 import { PartsFilterService } from './services/parts-filter.service';
 import { StockMovementsService } from '../stock/services/stock-movements.service';
 import { AttributeHistoryService } from '../attributes/services/attribute-history.service';
-import {
-  CreatePartDto,
-  PartAttributeValueInputDto,
-} from './dto/create-part.dto';
+import { CreatePartDto } from './dto/create-part.dto';
 import { UpdatePartDto } from './dto/update-part.dto';
 import { ReplacePartAttributesDto } from './dto/replace-part-attributes.dto';
 import { PartFilterDto } from './dto/part-filter.dto';
@@ -59,7 +56,11 @@ export class PartsController {
   })
   @ApiResponse({
     status: 400,
-    description: 'Ошибка валидации основных полей или EAV-атрибутов',
+    description: 'Ошибка валидации основных полей',
+  })
+  @ApiResponse({
+    status: 422,
+    description: 'Ошибка валидации динамических EAV-атрибутов',
   })
   @ApiResponse({
     status: 409,
@@ -126,7 +127,11 @@ export class PartsController {
   @ApiOperation({ summary: 'Частично обновить деталь и/или атрибуты' })
   @ApiParam({ name: 'id', description: 'UUID детали' })
   @ApiResponse({ status: 200, description: 'Обновленная деталь', type: Part })
-  @ApiResponse({ status: 400, description: 'Ошибка валидации' })
+  @ApiResponse({ status: 400, description: 'Ошибка валидации основных полей' })
+  @ApiResponse({
+    status: 422,
+    description: 'Ошибка валидации динамических EAV-атрибутов',
+  })
   @ApiResponse({ status: 404, description: 'Деталь не найдена' })
   update(
     @Param('id', ParseUUIDPipe) id: string,
@@ -147,14 +152,18 @@ export class PartsController {
   })
   @ApiResponse({
     status: 400,
-    description: 'Ошибка валидации динамических атрибутов',
+    description: 'Ошибка валидации тела запроса',
+  })
+  @ApiResponse({
+    status: 422,
+    description: 'Ошибка валидации динамических EAV-атрибутов',
   })
   @ApiResponse({ status: 404, description: 'Деталь не найдена' })
   replaceAttributes(
     @Param('id', ParseUUIDPipe) id: string,
-    @Body() payload: ReplacePartAttributesDto | PartAttributeValueInputDto[],
+    @Body() dto: ReplacePartAttributesDto,
   ): Promise<Part> {
-    return this.partsService.replaceAttributes(id, payload);
+    return this.partsService.replaceAttributes(id, dto);
   }
 
   @Post(':id/movements')

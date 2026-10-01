@@ -12,7 +12,6 @@ import {
 } from './dto/admin-stats.dto';
 import { PartFilterDto } from '../parts/dto/part-filter.dto';
 import { GlobalStockMovementFilterDto } from '../stock/dto/global-stock-movement-filter.dto';
-import { PaginationDto } from '../../common/dto/pagination.dto';
 
 @Injectable()
 export class AdminService {
@@ -39,24 +38,20 @@ export class AdminService {
       limit: 10,
     });
 
-    const categoryFilter = Object.assign(new PaginationDto(), {
-      page: 1,
-      limit: 1,
-    });
     const [
       partsSummary,
-      categoriesRes,
-      tags,
-      attrDefs,
-      units,
+      categoriesCount,
+      tagsCount,
+      attributesCount,
+      unitsCount,
       movementsRes,
       lowStockPartsRes,
     ] = await Promise.all([
       this.partsService.getSummary(),
-      this.categoriesService.findAll(categoryFilter),
-      this.tagsService.findAll(),
-      this.attrDefsService.findAllDefinitions(),
-      this.unitsService.findAll(),
+      this.categoriesService.count(),
+      this.tagsService.count(),
+      this.attrDefsService.countDefinitions(),
+      this.unitsService.count(),
       this.stockMovementsService.getGlobalMovements(movementFilter),
       this.partsFilterService.filterParts(lowStockFilter),
     ]);
@@ -76,10 +71,10 @@ export class AdminService {
       totalQuantity: partsSummary.totalQuantity,
       lowStockCount: partsSummary.lowStockCount,
       outOfStockCount: partsSummary.outOfStockCount,
-      categoriesCount: categoriesRes.meta.total,
-      tagsCount: tags.length,
-      attributesCount: attrDefs.length,
-      unitsCount: units.length,
+      categoriesCount,
+      tagsCount,
+      attributesCount,
+      unitsCount,
       movementsCount: movementsRes.meta.total,
       recentMovements: movementsRes.data,
       lowStockParts,

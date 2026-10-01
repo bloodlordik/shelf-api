@@ -1,4 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
+import * as http from 'http';
 import {
   INestApplication,
   ValidationPipe,
@@ -424,13 +425,18 @@ describe('MCP Module (e2e)', () => {
   });
 
   describe('SSE (GET /api/v1/mcp/sse)', () => {
-    it('should connect to SSE endpoint', async () => {
-      const response = await request(serverUrl)
-        .get('/api/v1/mcp/sse')
-        .expect('Content-Type', /text\/event-stream/)
-        .expect(200);
-
-      expect(response.text).toContain('data: /api/v1/mcp');
+    it('should connect to SSE endpoint', (done) => {
+      const req = http.get(`${serverUrl}/api/v1/mcp/sse`, (res) => {
+        expect(res.statusCode).toBe(200);
+        expect(res.headers['content-type']).toMatch(/text\/event-stream/);
+        res.on('data', (chunk: Buffer) => {
+          const text = chunk.toString();
+          if (text.includes('/api/v1/mcp')) {
+            req.destroy();
+            done();
+          }
+        });
+      });
     });
   });
 });

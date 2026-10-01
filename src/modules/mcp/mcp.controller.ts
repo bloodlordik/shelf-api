@@ -10,7 +10,8 @@ import {
   Sse,
   MessageEvent,
 } from '@nestjs/common';
-import { Observable, from } from 'rxjs';
+import { Observable, merge, of, interval } from 'rxjs';
+import { map } from 'rxjs/operators';
 import { ApiTags, ApiOperation, ApiResponse, ApiParam } from '@nestjs/swagger';
 
 import { McpService } from './services/mcp.service';
@@ -74,10 +75,10 @@ export class McpController {
       'SSE поток для подключения MCP клиентов (Claude Desktop, IDE, автономные агенты).',
   })
   handleSse(): Observable<MessageEvent> {
-    return from([
-      { type: 'endpoint', data: '/api/v1/mcp' },
-      { type: 'ping', data: {} },
-    ]);
+    return merge(
+      of({ type: 'endpoint', data: '/api/v1/mcp' }),
+      interval(15000).pipe(map(() => ({ type: 'ping', data: {} }))),
+    );
   }
 
   @Get('tools')

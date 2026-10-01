@@ -51,7 +51,7 @@
   - `tools/list` — Список схем инструментов в формате JSON Schema.
   - `tools/call` — Выполнение инструмента с передачей аргументов `params.arguments`.
   - `notifications/initialized` — Подтверждение готовности сессии.
-- **`GET /api/v1/mcp/sse`** — Server-Sent Events поток для двунаправленной коммуникации по протоколу MCP.
+- **`GET /api/v1/mcp/sse`** — Долгоживущий Server-Sent Events поток для двунаправленной коммуникации по протоколу MCP с автоматическим keepalive-пингом каждые 15 секунд (`endpoint` + `interval ping`).
 
 ---
 

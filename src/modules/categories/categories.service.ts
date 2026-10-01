@@ -60,6 +60,10 @@ export class CategoriesService {
     return new PaginatedResponseDto(items, total, page, limit);
   }
 
+  async count(): Promise<number> {
+    return this.categoryRepository.count();
+  }
+
   async findOne(id: string): Promise<Category> {
     const category = await this.categoryRepository.findOne({ where: { id } });
     if (!category) {
@@ -69,32 +73,28 @@ export class CategoriesService {
   }
 
   async getBreadcrumbs(categoryId: string): Promise<CategoryBreadcrumbDto[]> {
-    const allCategories = await this.categoryRepository.find();
-    const categoryMap = new Map<string, Category>();
-    for (const cat of allCategories) {
-      categoryMap.set(cat.id, cat);
-    }
+    const rows: Array<{ id: string; name: string; code: string | null }> =
+      await this.categoryRepository.query(
+        `
+        WITH RECURSIVE cat_tree AS (
+          SELECT id, name, code, parent_id, 1 AS depth
+          FROM categories
+          WHERE id = $1
+          UNION ALL
+          SELECT c.id, c.name, c.code, c.parent_id, ct.depth + 1
+          FROM categories c
+          INNER JOIN cat_tree ct ON c.id = ct.parent_id
+        )
+        SELECT id, name, code FROM cat_tree ORDER BY depth DESC;
+        `,
+        [categoryId],
+      );
 
-    const breadcrumbs: CategoryBreadcrumbDto[] = [];
-    let currentId: string | null | undefined = categoryId;
-    const visited = new Set<string>();
-
-    while (currentId && categoryMap.has(currentId)) {
-      if (visited.has(currentId)) {
-        break; // Guard against unexpected cycle
-      }
-      visited.add(currentId);
-      const cat = categoryMap.get(currentId);
-      if (!cat) break;
-      breadcrumbs.unshift({
-        id: cat.id,
-        name: cat.name,
-        code: cat.code,
-      });
-      currentId = cat.parentId;
-    }
-
-    return breadcrumbs;
+    return rows.map((r) => ({
+      id: r.id,
+      name: r.name,
+      code: r.code ?? undefined,
+    }));
   }
 
   async getCategoryDetail(id: string): Promise<CategoryDetailResponseDto> {
@@ -147,33 +147,21 @@ export class CategoriesService {
   }
 
   async getAllSubcategoryIds(categoryId: string): Promise<string[]> {
-    const categories = await this.categoryRepository.find();
-    const childrenMap = new Map<string, string[]>();
+    const rows: Array<{ id: string }> = await this.categoryRepository.query(
+      `
+      WITH RECURSIVE sub_tree AS (
+        SELECT id FROM categories WHERE id = $1
+        UNION ALL
+        SELECT c.id
+        FROM categories c
+        INNER JOIN sub_tree st ON c.parent_id = st.id
+      )
+      SELECT id FROM sub_tree;
+      `,
+      [categoryId],
+    );
 
-    for (const cat of categories) {
-      if (cat.parentId) {
-        const list = childrenMap.get(cat.parentId) || [];
-        list.push(cat.id);
-        childrenMap.set(cat.parentId, list);
-      }
-    }
-
-    const visited = new Set<string>([categoryId]);
-    const result: string[] = [categoryId];
-    const queue: string[] = [categoryId];
-
-    while (queue.length > 0) {
-      const current = queue.shift()!;
-      const children = childrenMap.get(current) || [];
-      for (const childId of children) {
-        if (!visited.has(childId)) {
-          visited.add(childId);
-          result.push(childId);
-          queue.push(childId);
-        }
-      }
-    }
-    return result;
+    return rows.map((r) => r.id);
   }
 
   async update(

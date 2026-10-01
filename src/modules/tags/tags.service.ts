@@ -47,6 +47,10 @@ export class TagsService {
     });
   }
 
+  async count(): Promise<number> {
+    return this.tagsRepository.count();
+  }
+
   async findOne(id: string): Promise<Tag> {
     const tag = await this.tagsRepository.findOne({ where: { id } });
     if (!tag) {

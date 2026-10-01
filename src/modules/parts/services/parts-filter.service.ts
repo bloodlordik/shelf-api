@@ -59,14 +59,22 @@ export class PartsFilterService {
       const subQuery = this.partsRepository
         .createQueryBuilder('sub_part')
         .select('sub_part.id')
-        .innerJoin('sub_part.tags', 'sub_tag', 'sub_tag.id IN (:...tagIds)', {
-          tagIds,
-        })
+        .innerJoin(
+          'sub_part.tags',
+          'sub_tag',
+          'sub_tag.id IN (:...sub_tagIds)',
+          { sub_tagIds: tagIds },
+        )
         .groupBy('sub_part.id')
-        .having('COUNT(DISTINCT sub_tag.id) = :tagCount', { tagCount });
+        .having('COUNT(DISTINCT sub_tag.id) = :sub_tagCount', {
+          sub_tagCount: tagCount,
+        });
 
       qb.andWhere(`part.id IN (${subQuery.getQuery()})`);
-      qb.setParameters(subQuery.getParameters());
+      qb.setParameters({
+        ...qb.getParameters(),
+        ...subQuery.getParameters(),
+      });
     }
 
     // 4. Dynamic attributes filtering via JSONB
@@ -98,59 +106,72 @@ export class PartsFilterService {
       }
     }
 
+    const SAFE_ATTR_KEY_REGEX = /^[a-zA-Z0-9_]{1,64}$/;
+
     if (Object.keys(dynamicAttr).length > 0) {
       let paramIndex = 0;
       for (const [attrKey, condition] of Object.entries(dynamicAttr)) {
-        if (!attrKey || condition === undefined || condition === null) continue;
+        if (
+          !attrKey ||
+          !SAFE_ATTR_KEY_REGEX.test(attrKey) ||
+          condition === undefined ||
+          condition === null
+        ) {
+          continue;
+        }
 
         if (typeof condition === 'object' && !Array.isArray(condition)) {
           const condObj = condition as Record<string, unknown>;
           if (condObj.gte !== undefined) {
-            const paramName = `attr_gte_${paramIndex++}`;
+            const kParam = `attr_k_${paramIndex}`;
+            const vParam = `attr_gte_${paramIndex++}`;
             qb.andWhere(
-              `(part.attributes_snapshot->>'${attrKey}')::numeric >= :${paramName}`,
-              { [paramName]: Number(condObj.gte) },
+              `jsonb_typeof(part.attributes_snapshot->:${kParam}) = 'number' AND (part.attributes_snapshot->>:${kParam})::numeric >= :${vParam}`,
+              { [kParam]: attrKey, [vParam]: Number(condObj.gte) },
             );
           }
           if (condObj.lte !== undefined) {
-            const paramName = `attr_lte_${paramIndex++}`;
+            const kParam = `attr_k_${paramIndex}`;
+            const vParam = `attr_lte_${paramIndex++}`;
             qb.andWhere(
-              `(part.attributes_snapshot->>'${attrKey}')::numeric <= :${paramName}`,
-              { [paramName]: Number(condObj.lte) },
+              `jsonb_typeof(part.attributes_snapshot->:${kParam}) = 'number' AND (part.attributes_snapshot->>:${kParam})::numeric <= :${vParam}`,
+              { [kParam]: attrKey, [vParam]: Number(condObj.lte) },
             );
           }
           if (condObj.eq !== undefined) {
-            const paramName = `attr_eq_${paramIndex++}`;
-            qb.andWhere(
-              `part.attributes_snapshot->>'${attrKey}' = :${paramName}`,
-              {
-                [paramName]:
-                  typeof condObj.eq === 'string' ||
-                  typeof condObj.eq === 'number' ||
-                  typeof condObj.eq === 'boolean'
-                    ? String(condObj.eq)
-                    : JSON.stringify(condObj.eq),
-              },
-            );
+            const kParam = `attr_k_${paramIndex}`;
+            const vParam = `attr_eq_${paramIndex++}`;
+            qb.andWhere(`part.attributes_snapshot->>:${kParam} = :${vParam}`, {
+              [kParam]: attrKey,
+              [vParam]:
+                typeof condObj.eq === 'string' ||
+                typeof condObj.eq === 'number' ||
+                typeof condObj.eq === 'boolean'
+                  ? String(condObj.eq)
+                  : JSON.stringify(condObj.eq),
+            });
           }
         } else if (typeof condition === 'boolean') {
-          const paramName = `attr_bool_${paramIndex++}`;
+          const kParam = `attr_k_${paramIndex}`;
+          const vParam = `attr_bool_${paramIndex++}`;
           qb.andWhere(
-            `(part.attributes_snapshot->>'${attrKey}')::boolean = :${paramName}`,
-            { [paramName]: condition },
+            `jsonb_typeof(part.attributes_snapshot->:${kParam}) = 'boolean' AND (part.attributes_snapshot->>:${kParam})::boolean = :${vParam}`,
+            { [kParam]: attrKey, [vParam]: condition },
           );
         } else if (typeof condition === 'number') {
-          const paramName = `attr_num_${paramIndex++}`;
+          const kParam = `attr_k_${paramIndex}`;
+          const vParam = `attr_num_${paramIndex++}`;
           qb.andWhere(
-            `(part.attributes_snapshot->>'${attrKey}')::numeric = :${paramName}`,
-            { [paramName]: condition },
+            `jsonb_typeof(part.attributes_snapshot->:${kParam}) = 'number' AND (part.attributes_snapshot->>:${kParam})::numeric = :${vParam}`,
+            { [kParam]: attrKey, [vParam]: condition },
           );
         } else if (typeof condition === 'string') {
-          const paramName = `attr_str_${paramIndex++}`;
+          const kParam = `attr_k_${paramIndex}`;
+          const vParam = `attr_str_${paramIndex++}`;
           // Matches scalar string or element inside jsonb array
           qb.andWhere(
-            `(part.attributes_snapshot->>'${attrKey}' = :${paramName} OR part.attributes_snapshot->'${attrKey}' ? :${paramName})`,
-            { [paramName]: condition },
+            `(part.attributes_snapshot->>:${kParam} = :${vParam} OR part.attributes_snapshot->:${kParam} ? :${vParam})`,
+            { [kParam]: attrKey, [vParam]: condition },
           );
         }
       }

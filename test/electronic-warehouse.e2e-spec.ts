@@ -533,7 +533,7 @@ describe('Electronic Warehouse (shelf-api) Complete E2E Suite', () => {
         ],
       });
 
-      expect(res.status).toBe(400);
+      expect(res.status).toBe(422);
       const body = res.body as { error: string; details: unknown[] };
       expect(body.error).toBe('Attribute Validation Failed');
       expect(body.details.length).toBe(2);

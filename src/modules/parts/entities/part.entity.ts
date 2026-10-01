@@ -18,6 +18,7 @@ import { AttributeValue } from './attribute-value.entity';
 @Index('idx_parts_sku', ['sku'], { unique: true })
 @Index('idx_parts_category_id', ['categoryId'])
 @Index('idx_parts_created_at', ['createdAt'])
+@Index('idx_parts_attributes_snapshot_gin', ['attributesSnapshot'])
 export class Part extends AbstractBaseEntity {
   @ApiProperty({
     example: 'Резистор SMD 10 кОм 0805 1%',

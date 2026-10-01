@@ -92,6 +92,10 @@ export class AttributeDefinitionsService {
     });
   }
 
+  async countDefinitions(): Promise<number> {
+    return this.definitionRepository.count();
+  }
+
   async findDefinitionById(id: string): Promise<AttributeDefinition> {
     const definition = await this.definitionRepository.findOne({
       where: { id },

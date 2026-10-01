@@ -49,6 +49,7 @@ describe('CategoriesService', () => {
     create: jest.Mock;
     save: jest.Mock;
     remove: jest.Mock;
+    query: jest.Mock;
   };
 
   beforeEach(async () => {
@@ -69,8 +70,35 @@ describe('CategoriesService', () => {
         .mockImplementation((dto: Partial<Category>) => dto as Category),
       save: jest.fn().mockImplementation((entity) => Promise.resolve(entity)),
       remove: jest.fn().mockImplementation((entity) => Promise.resolve(entity)),
+      query: jest.fn().mockImplementation((sql: string, params: unknown[]) => {
+        const id = params[0] as string;
+        if (sql.includes('cat_tree')) {
+          const chain: Category[] = [];
+          let curr = mockCategories.find((c) => c.id === id);
+          while (curr) {
+            chain.unshift(curr);
+            curr = mockCategories.find((c) => c.id === curr?.parentId);
+          }
+          return Promise.resolve(
+            chain.map((c) => ({ id: c.id, name: c.name, code: c.code })),
+          );
+        }
+        if (sql.includes('sub_tree')) {
+          const result: string[] = [];
+          const queue = [id];
+          while (queue.length > 0) {
+            const currentId = queue.shift()!;
+            result.push(currentId);
+            const children = mockCategories
+              .filter((c) => c.parentId === currentId)
+              .map((c) => c.id);
+            queue.push(...children);
+          }
+          return Promise.resolve(result.map((rid) => ({ id: rid })));
+        }
+        return Promise.resolve([]);
+      }),
     };
-
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         CategoriesService,

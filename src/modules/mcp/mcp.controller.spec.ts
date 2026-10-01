@@ -1,4 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
+import { take } from 'rxjs/operators';
 import { McpController } from './mcp.controller';
 import { McpService } from './services/mcp.service';
 import { McpSchemaFormatterService } from './services/mcp-schema-formatter.service';
@@ -37,16 +38,18 @@ describe('McpController', () => {
   });
 
   describe('handleSse', () => {
-    it('should return an observable with SSE events', (done) => {
-      const events: unknown[] = [];
-      controller.handleSse().subscribe({
-        next: (event) => events.push(event),
-        complete: () => {
-          expect(events).toHaveLength(2);
-          expect(events[0]).toEqual({ type: 'endpoint', data: '/api/v1/mcp' });
-          done();
-        },
-      });
+    it('should return an observable with initial endpoint event', (done) => {
+      controller
+        .handleSse()
+        .pipe(take(1))
+        .subscribe({
+          next: (event) => {
+            expect(event).toEqual({ type: 'endpoint', data: '/api/v1/mcp' });
+          },
+          complete: () => {
+            done();
+          },
+        });
     });
   });
 

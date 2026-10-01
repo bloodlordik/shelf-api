@@ -30,6 +30,10 @@ export class UnitsService {
     });
   }
 
+  async count(): Promise<number> {
+    return this.unitsRepository.count();
+  }
+
   async findOne(id: string): Promise<Unit> {
     const unit = await this.unitsRepository.findOne({ where: { id } });
     if (!unit) {
