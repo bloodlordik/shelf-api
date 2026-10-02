@@ -36,6 +36,8 @@
   - `host`, `port`, `username`, `password`, `database` из `ConfigService`.
   - `synchronize`: управляется через `DB_SYNCHRONIZE` (по умолчанию `true` в `development`).
   - `autoLoadEntities: true` — Автоматическое обнаружение сущностей всех подключенных модулей.
+  - `migrations`: `[__dirname + '/database/migrations/*{.ts,.js}']` — Регистрация миграций в приложении.
+  - `migrationsTableName`: `'typeorm_migrations'` — Таблица истории миграций.
 - **Подключенные модули:**
   - `HealthModule`
   - `UnitsModule`
@@ -47,3 +49,27 @@
   - `StockModule`
   - `McpModule`
   - `AdminModule`
+
+---
+
+## 3. Управление миграциями базы данных (TypeORM CLI)
+
+### Архитектура и структура
+- **CLI DataSource:** `src/database/data-source.ts`
+  - Безопасная загрузка переменных окружения с приоритетами (`.env.${NODE_ENV}.local` -> `.env.${NODE_ENV}` -> `.env`).
+  - Явный импорт всех 10 сущностей TypeORM (`Actor`, `Unit`, `Category`, `Tag`, `AttributeDefinition`, `AttributeOption`, `AttributeValueHistory`, `Part`, `AttributeValue`, `StockMovement`).
+  - Конфигурация `synchronize: false`, путь к миграциям `src/database/migrations/*{.ts,.js}` и таблица версий `typeorm_migrations`.
+- **Каталог миграций:** `src/database/migrations/`
+- **Скрипты-хелперы:**
+  - `src/database/scripts/generate-migration.ts`: кроссплатформенная генерация миграции в `src/database/migrations/` по имени.
+  - `src/database/scripts/create-migration.ts`: создание шаблона пустой миграции в `src/database/migrations/`.
+
+### Команды управления миграциями
+| Команда | Описание |
+| :--- | :--- |
+| `pnpm run migration:generate <Name>` | Генерация миграции на основе сравнения сущностей и схемы БД в `src/database/migrations/` |
+| `pnpm run migration:create <Name>` | Создание шаблона пустой миграции в `src/database/migrations/` |
+| `pnpm run migration:show` | Просмотр списка миграций и статуса их выполнения |
+| `pnpm run migration:run` | Применение всех ожидающих миграций к БД |
+| `pnpm run migration:revert` | Откат последней примененной миграции |
+| `pnpm run typeorm <args>` | Прямой запуск TypeORM CLI с подключением `src/database/data-source.ts` |

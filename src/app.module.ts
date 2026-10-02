@@ -44,6 +44,8 @@ import { AdminModule } from './modules/admin/admin.module';
           synchronize,
           logging,
           autoLoadEntities: true,
+          migrations: [__dirname + '/database/migrations/*{.ts,.js}'],
+          migrationsTableName: 'typeorm_migrations',
         };
       },
     }),
