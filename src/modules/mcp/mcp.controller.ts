@@ -7,14 +7,19 @@ import {
   Param,
   HttpCode,
   HttpStatus,
-  Sse,
-  MessageEvent,
+  Req,
+  Res,
 } from '@nestjs/common';
-import { Observable, merge, of, interval } from 'rxjs';
-import { map } from 'rxjs/operators';
-import { ApiTags, ApiOperation, ApiResponse, ApiParam } from '@nestjs/swagger';
-
+import type { Request, Response } from 'express';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiParam,
+  ApiQuery,
+} from '@nestjs/swagger';
 import { McpService } from './services/mcp.service';
+import { McpServerService } from './services/mcp-server.service';
 import {
   HelpToolDto,
   IndexToolDto,
@@ -24,7 +29,6 @@ import {
   McpJsonRpcBodyDto,
 } from './dto/mcp-tools.dto';
 import type {
-  McpResponse,
   McpToolDefinition,
   McpToolCallResult,
 } from './interfaces/mcp.interfaces';
@@ -43,42 +47,110 @@ export interface McpExecuteToolResponse {
   markdown: string;
 }
 
+export interface McpStatusResponse {
+  status: string;
+  service: string;
+  version: string;
+  activeSessions: number;
+  toolsCount: number;
+}
+
 @ApiTags('mcp')
 @Controller('mcp')
 export class McpController {
-  constructor(private readonly mcpService: McpService) {}
+  constructor(
+    private readonly mcpService: McpService,
+    private readonly mcpServerService: McpServerService,
+  ) {}
 
   @Post()
-  @HttpCode(HttpStatus.OK)
   @ApiOperation({
     summary: 'MCP JSON-RPC 2.0 endpoint',
     description:
-      'Стандартный JSON-RPC 2.0 интерфейс Model Context Protocol (методы: initialize, tools/list, tools/call, ping).',
+      'Стандартный JSON-RPC 2.0 интерфейс Model Context Protocol (поддерживает как синхронные запросы, так и маршрутизацию по sessionId в активную SSE сессию).',
   })
   @ApiResponse({
     status: 200,
-    description: 'JSON-RPC 2.0 ответ',
+    description: 'Синхронный JSON-RPC 2.0 ответ',
   })
-  handleJsonRpc(@Body() body: McpJsonRpcBodyDto): McpResponse {
-    return this.mcpService.handleJsonRpc({
+  @ApiResponse({
+    status: 202,
+    description: 'Сообщение принято к обработке для SSE сессии',
+  })
+  async handleJsonRpc(
+    @Req() req: Request,
+    @Res() res: Response,
+    @Body() body: McpJsonRpcBodyDto,
+  ): Promise<void> {
+    const rawSessionId =
+      (req.query?.sessionId as string) ||
+      (req.headers?.['x-session-id'] as string) ||
+      (body && typeof body === 'object' && 'sessionId' in body
+        ? String((body as Record<string, unknown>).sessionId)
+        : undefined);
+
+    if (rawSessionId) {
+      await this.mcpServerService.handlePostMessage(req, res);
+      return;
+    }
+
+    const response = this.mcpService.handleJsonRpc({
       jsonrpc: body.jsonrpc,
       id: body.id,
       method: body.method,
       params: body.params,
     });
+    res.status(HttpStatus.OK).json(response);
   }
 
-  @Sse('sse')
+  @Get('sse')
   @ApiOperation({
     summary: 'MCP Server-Sent Events (SSE) stream',
     description:
-      'SSE поток для подключения MCP клиентов (Claude Desktop, IDE, автономные агенты).',
+      'Устанавливает Server-Sent Events соединение по протоколу Model Context Protocol (MCP).',
   })
-  handleSse(): Observable<MessageEvent> {
-    return merge(
-      of({ type: 'endpoint', data: '/api/v1/mcp' }),
-      interval(15000).pipe(map(() => ({ type: 'ping', data: {} }))),
-    );
+  @ApiResponse({ status: 200, description: 'SSE поток успешно установлен' })
+  async handleSse(@Req() req: Request, @Res() res: Response): Promise<void> {
+    await this.mcpServerService.handleSseConnection(req, res);
+  }
+
+  @Post('messages')
+  @ApiOperation({
+    summary: 'Прием сообщений MCP сессии',
+    description:
+      'Обрабатывает входящие JSON-RPC запросы для активной SSE сессии.',
+  })
+  @ApiQuery({
+    name: 'sessionId',
+    required: true,
+    description: 'UUID активной SSE сессии',
+  })
+  @ApiResponse({
+    status: 202,
+    description: 'Сообщение принято к асинхронной обработке',
+  })
+  async handleMessages(
+    @Req() req: Request,
+    @Res() res: Response,
+  ): Promise<void> {
+    await this.mcpServerService.handlePostMessage(req, res);
+  }
+
+  @Get('status')
+  @ApiOperation({
+    summary: 'Статус и метрики MCP сервера',
+    description:
+      'Возвращает текущее состояние MCP сервера, количество активных SSE сессий и зарегистрированных инструментов.',
+  })
+  @ApiResponse({ status: 200, description: 'Статус сервера' })
+  getStatus(): McpStatusResponse {
+    return {
+      status: 'ok',
+      service: 'shelf-api-mcp',
+      version: '1.0.0',
+      activeSessions: this.mcpServerService.activeSessionsCount,
+      toolsCount: 4,
+    };
   }
 
   @Get('tools')

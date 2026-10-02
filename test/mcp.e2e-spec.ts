@@ -424,19 +424,180 @@ describe('MCP Module (e2e)', () => {
     });
   });
 
-  describe('SSE (GET /api/v1/mcp/sse)', () => {
-    it('should connect to SSE endpoint', (done) => {
+  describe('SSE and MCP Protocol Flow (GET /api/v1/mcp/sse & POST /api/v1/mcp/messages)', () => {
+    it('should connect to SSE endpoint and emit endpoint event with sessionId', (done) => {
       const req = http.get(`${serverUrl}/api/v1/mcp/sse`, (res) => {
         expect(res.statusCode).toBe(200);
         expect(res.headers['content-type']).toMatch(/text\/event-stream/);
         res.on('data', (chunk: Buffer) => {
           const text = chunk.toString();
-          if (text.includes('/api/v1/mcp')) {
+          if (text.includes('/api/v1/mcp/messages?sessionId=')) {
             req.destroy();
             done();
           }
         });
       });
     });
+
+    it('should reject POST /api/v1/mcp/messages without sessionId', async () => {
+      await request(serverUrl)
+        .post('/api/v1/mcp/messages')
+        .send({ jsonrpc: '2.0', id: 1, method: 'ping' })
+        .expect(400);
+    });
+
+    it('should return 404 for unknown sessionId in POST /api/v1/mcp/messages', async () => {
+      await request(serverUrl)
+        .post(
+          '/api/v1/mcp/messages?sessionId=00000000-0000-0000-0000-000000000000',
+        )
+        .send({ jsonrpc: '2.0', id: 1, method: 'ping' })
+        .expect(404);
+    });
+
+    it('GET /api/v1/mcp/status should return server status', async () => {
+      const res = await request(serverUrl)
+        .get('/api/v1/mcp/status')
+        .expect(200);
+
+      expect(res.body).toMatchObject({
+        status: 'ok',
+        service: 'shelf-api-mcp',
+        version: '1.0.0',
+        toolsCount: 4,
+      });
+    });
+
+    it('should complete full MCP lifecycle over SSE: initialize -> tools/list -> tools/call', (done) => {
+      let sessionId = '';
+      let buffer = '';
+      const handledIds = new Set<number | string>();
+
+      interface JsonRpcEnvelope {
+        jsonrpc: string;
+        id?: number | string;
+        result?: {
+          serverInfo?: { name: string; version: string };
+          tools?: unknown[];
+          content?: Array<{ type: string; text: string }>;
+        };
+        error?: { code: number; message: string };
+      }
+
+      const req = http.get(`${serverUrl}/api/v1/mcp/sse`, (res) => {
+        expect(res.statusCode).toBe(200);
+
+        res.on('data', (chunk: Buffer) => {
+          void (async () => {
+            buffer += chunk.toString();
+            let boundaryIndex: number;
+
+            while ((boundaryIndex = buffer.indexOf('\n\n')) !== -1) {
+              const eventBlock = buffer.slice(0, boundaryIndex);
+              buffer = buffer.slice(boundaryIndex + 2);
+
+              const lines = eventBlock.split('\n');
+              let eventType = '';
+              let dataStr = '';
+
+              for (const line of lines) {
+                if (line.startsWith('event: ')) {
+                  eventType = line.slice(7).trim();
+                } else if (line.startsWith('data: ')) {
+                  dataStr = line.slice(6).trim();
+                }
+              }
+
+              if (
+                eventType === 'endpoint' ||
+                dataStr.includes('/api/v1/mcp/messages?sessionId=')
+              ) {
+                const match = dataStr.match(/sessionId=([a-f0-9-]+)/i);
+                if (match) {
+                  sessionId = match[1];
+
+                  // Send initialize request via POST
+                  const initRes = await request(serverUrl)
+                    .post(`/api/v1/mcp/messages?sessionId=${sessionId}`)
+                    .send({
+                      jsonrpc: '2.0',
+                      id: 1,
+                      method: 'initialize',
+                      params: {
+                        protocolVersion: '2024-11-05',
+                        capabilities: {},
+                        clientInfo: { name: 'test-client', version: '1.0.0' },
+                      },
+                    });
+                  expect(initRes.status).toBe(202);
+                }
+              } else if (dataStr.startsWith('{')) {
+                try {
+                  const parsed = JSON.parse(dataStr) as JsonRpcEnvelope;
+                  if (parsed.id !== undefined) {
+                    if (handledIds.has(parsed.id)) {
+                      continue;
+                    }
+                    handledIds.add(parsed.id);
+                  }
+                  if (parsed.id === 1) {
+                    expect(parsed.result).toBeDefined();
+                    expect(parsed.result?.serverInfo?.name).toBe(
+                      'shelf-api-mcp',
+                    );
+
+                    // Send notifications/initialized as required by MCP spec
+                    await request(serverUrl)
+                      .post(`/api/v1/mcp/messages?sessionId=${sessionId}`)
+                      .send({
+                        jsonrpc: '2.0',
+                        method: 'notifications/initialized',
+                      });
+
+                    // Send tools/list request
+                    const toolsRes = await request(serverUrl)
+                      .post(`/api/v1/mcp/messages?sessionId=${sessionId}`)
+                      .send({
+                        jsonrpc: '2.0',
+                        id: 2,
+                        method: 'tools/list',
+                      });
+                    expect(toolsRes.status).toBe(202);
+                  } else if (parsed.id === 2) {
+                    expect(parsed.result?.tools).toBeDefined();
+                    expect(parsed.result?.tools?.length).toBeGreaterThanOrEqual(
+                      4,
+                    );
+
+                    // Send tools/call request for help
+                    const callRes = await request(serverUrl)
+                      .post(`/api/v1/mcp/messages?sessionId=${sessionId}`)
+                      .send({
+                        jsonrpc: '2.0',
+                        id: 3,
+                        method: 'tools/call',
+                        params: {
+                          name: 'help',
+                          arguments: { topic: 'overview' },
+                        },
+                      });
+                    expect(callRes.status).toBe(202);
+                  } else if (parsed.id === 3) {
+                    expect(parsed.result?.content).toBeDefined();
+                    expect(parsed.result?.content?.[0]?.text).toContain(
+                      'Shelf API',
+                    );
+                    req.destroy();
+                    done();
+                  }
+                } catch (err) {
+                  done(err);
+                }
+              }
+            }
+          })();
+        });
+      });
+    }, 15000);
   });
 });

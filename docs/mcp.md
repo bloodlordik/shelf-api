@@ -6,8 +6,9 @@
 
 - **Контроллер:** `McpController` (`src/modules/mcp/mcp.controller.ts`)
 - **Сервисы:**
-  - `McpService` (`src/modules/mcp/services/mcp.service.ts`)
-  - `McpSchemaFormatterService` (`src/modules/mcp/services/mcp-schema-formatter.service.ts`)
+  - `McpServerService` (`src/modules/mcp/services/mcp-server.service.ts`) — высокоуровневый сервер MCP на базе официального SDK `@modelcontextprotocol/sdk` и `zod`, управление сессиями `SSEServerTransport` и маршрутизацией асинхронных сообщений.
+  - `McpService` (`src/modules/mcp/services/mcp.service.ts`) — генерация Markdown-ответов, семантический поиск по OpenAPI и синхронная обработка JSON-RPC 2.0.
+  - `McpSchemaFormatterService` (`src/modules/mcp/services/mcp-schema-formatter.service.ts`) — рекурсивное преобразование OpenAPI 3.0 схем в TypeScript интерфейсы и примеры данных.
 - **Инициализация документа:** В `main.ts` сгенерированный Swagger/OpenAPI документ регистрируется в сервисе:
   ```typescript
   const document = SwaggerModule.createDocument(app, swaggerConfig);
@@ -45,17 +46,28 @@
 
 ---
 
-## 3. Протокол JSON-RPC 2.0 и SSE
+## 3. Протокол Model Context Protocol (JSON-RPC 2.0 и SSE)
 
-Модуль поддерживает стандартный протокол MCP:
-- **`POST /api/v1/mcp`** — Обработка JSON-RPC 2.0 сообщений:
-  - `initialize` — Возвращает информацию о сервере, версию протокола и возможности (`capabilities.tools`).
-  - `tools/list` — Список схем инструментов в формате JSON Schema.
-  - `tools/call` — Выполнение инструмента с передачей аргументов `params.arguments`.
-  - `notifications/initialized` — Подтверждение готовности сессии.
-- **`GET /api/v1/mcp/sse`** — Долгоживущий Server-Sent Events поток для двунаправленной коммуникации по протоколу MCP с автоматическим keepalive-пингом каждые 15 секунд (`endpoint` + `interval ping`).
+Модуль полностью реализует официальную спецификацию Model Context Protocol (MCP) с поддержкой Server-Sent Events (SSE) через `@modelcontextprotocol/sdk`:
 
----
+### Полноценный цикл SSE-транспорта:
+1. **Установка SSE-соединения (`GET /api/v1/mcp/sse`):**
+   - Создается изолированный экземпляр `McpServer` и транспорт `SSEServerTransport('/api/v1/mcp/messages', res)`.
+   - Генерируется уникальный UUID сессии (`sessionId`).
+   - Клиенту отправляется стартовое SSE-событие `endpoint`:
+     ```text
+     event: endpoint
+     data: /api/v1/mcp/messages?sessionId=<uuid>
+     ```
+2. **Отправка команд клиентом (`POST /api/v1/mcp/messages?sessionId=<uuid>`):**
+   - Клиент отправляет JSON-RPC запросы (`initialize`, `notifications/initialized`, `tools/list`, `tools/call`, `ping`).
+   - Сервер мгновенно подтверждает прием сообщений асинхронным HTTP-статусом `202 Accepted`.
+   - Результаты вычислений и JSON-RPC ответы стримятся сервером обратно в открытый SSE-поток (`event: message`).
+3. **Обратная совместимость (`POST /api/v1/mcp`):**
+   - Если передан `sessionId` (в query, заголовке `x-session-id` или теле), запрос перенаправляется в асинхронный SSE-транспорт.
+   - При отсутствии `sessionId` запрос обрабатывается синхронно через `McpService.handleJsonRpc` с возвратом статуса `200 OK` (для REST/curl вызовов без SSE).
+4. **Мониторинг сервера (`GET /api/v1/mcp/status`):**
+   - Возвращает технический статус `{ "status": "ok", "service": "shelf-api-mcp", "version": "1.0.0", "activeSessions": 0, "toolsCount": 4 }`.
 
 ## 4. Сервис форматирования схем (`McpSchemaFormatterService`)
 
@@ -75,5 +87,7 @@
 - `GET /api/v1/mcp/index` — Каталог маршрутов.
 - `GET /api/v1/mcp/describe?path=...&method=...` — Описание маршрута и схем.
 - `GET /api/v1/mcp/search?query=...` — Поиск маршрутов.
-- `POST /api/v1/mcp` — JSON-RPC 2.0 транспорт (поддерживает `initialize`, `tools/list`, `tools/call`, `ping`, `notifications/initialized`).
-- `GET /api/v1/mcp/sse` — SSE транспорт.
+- `POST /api/v1/mcp` — JSON-RPC 2.0 транспорт (поддерживает `initialize`, `tools/list`, `tools/call`, `ping`, `notifications/initialized`, с поддержкой маршрутизации по `sessionId`).
+- `GET /api/v1/mcp/sse` — SSE транспорт для установки сессии.
+- `POST /api/v1/mcp/messages?sessionId=<uuid>` — приём JSON-RPC сообщений для активной SSE сессии (возвращает `202 Accepted`).
+- `GET /api/v1/mcp/status` — статус сервера, количество активных сессий и зарегистрированных инструментов.
