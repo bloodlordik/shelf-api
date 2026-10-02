@@ -106,8 +106,19 @@ export class McpController {
   })
   @ApiParam({
     name: 'toolName',
-    enum: ['help', 'index', 'describe', 'search'],
-    description: 'Имя инструмента',
+    enum: [
+      'help',
+      'index',
+      'describe',
+      'search',
+      'api_help',
+      'api_index',
+      'api_describe',
+      'api_search',
+      'execute',
+    ],
+    description:
+      'Имя инструмента или "execute" для передачи имени в поле body.tool',
   })
   @ApiResponse({
     status: 200,
@@ -117,11 +128,16 @@ export class McpController {
     @Param('toolName') toolName: string,
     @Body() body: ExecuteToolBodyDto,
   ): McpExecuteToolResponse {
-    const result = this.mcpService.executeTool(toolName, body.arguments ?? {});
+    const targetTool =
+      toolName === 'execute' && body.tool ? body.tool : toolName;
+    const result = this.mcpService.executeTool(
+      targetTool,
+      body.arguments ?? {},
+    );
     const markdown = result.content[0]?.text ?? '';
 
     return {
-      tool: toolName,
+      tool: targetTool,
       result,
       markdown,
     };

@@ -325,6 +325,27 @@ describe('McpService', () => {
           : undefined;
       expect(res?.content[0]?.text).toContain('/stock/movements');
     });
+    it('should handle "tools/call" with api_ prefix and direct params', () => {
+      const response = service.handleJsonRpc({
+        jsonrpc: '2.0',
+        id: 33,
+        method: 'tools/call',
+        params: {
+          name: 'api_search',
+          query: 'movement',
+        },
+      });
+
+      const res =
+        response.result &&
+        typeof response.result === 'object' &&
+        'content' in response.result
+          ? (response.result as {
+              content: Array<{ type: string; text: string }>;
+            })
+          : undefined;
+      expect(res?.content[0]?.text).toContain('/stock/movements');
+    });
 
     it('should return METHOD_NOT_FOUND error for unknown JSON-RPC method', () => {
       const response = service.handleJsonRpc({

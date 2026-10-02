@@ -156,8 +156,15 @@ export class McpService {
   ): McpToolCallResult {
     try {
       let markdown = '';
+      const normalizedName = (
+        name.startsWith('api_')
+          ? name.slice(4)
+          : name.startsWith('API_')
+            ? name.slice(4)
+            : name
+      ).toLowerCase();
 
-      switch (name) {
+      switch (normalizedName) {
         case 'help': {
           const dto: HelpToolDto = {
             topic: typeof args.topic === 'string' ? args.topic : undefined,
@@ -281,9 +288,15 @@ export class McpService {
           const params = request.params as Record<string, unknown> | undefined;
           const toolName = typeof params?.name === 'string' ? params.name : '';
           const toolArgs =
-            params?.arguments && typeof params.arguments === 'object'
+            params?.arguments &&
+            typeof params.arguments === 'object' &&
+            !Array.isArray(params.arguments)
               ? (params.arguments as Record<string, unknown>)
-              : {};
+              : params && typeof params === 'object'
+                ? (Object.fromEntries(
+                    Object.entries(params).filter(([k]) => k !== 'name'),
+                  ) as Record<string, unknown>)
+                : {};
 
           if (!toolName) {
             return {

@@ -68,8 +68,24 @@ describe('McpController', () => {
       expect(response.tool).toBe('help');
       expect(response.markdown).toContain('Пагинация в Shelf API');
     });
-  });
 
+    it('should support execution via "execute" toolName and body.tool', () => {
+      const response = controller.executeTool('execute', {
+        tool: 'api_help',
+        arguments: { topic: 'pagination' },
+      });
+      expect(response.tool).toBe('api_help');
+      expect(response.markdown).toContain('Пагинация в Shelf API');
+    });
+
+    it('should support execution with api_ prefix', () => {
+      const response = controller.executeTool('api_describe', {
+        arguments: { path: '/parts' },
+      });
+      expect(response.tool).toBe('api_describe');
+      expect(response.result.isError).toBeFalsy();
+    });
+  });
   describe('REST helpers', () => {
     it('getHelp should return markdown', () => {
       const res = controller.getHelp({});

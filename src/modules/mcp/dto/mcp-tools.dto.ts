@@ -97,6 +97,15 @@ export class SearchToolDto {
 
 export class ExecuteToolBodyDto {
   @ApiPropertyOptional({
+    description:
+      'Имя инструмента (если используется эндпоинт POST /tools/execute)',
+    example: 'describe',
+  })
+  @IsOptional()
+  @IsString()
+  tool?: string;
+
+  @ApiPropertyOptional({
     description: 'Аргументы для вызова инструмента MCP',
     example: { query: 'parts' },
   })

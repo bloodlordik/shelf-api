@@ -18,27 +18,29 @@
 
 ## 2. Доступные MCP Инструменты (Tools)
 
-### 1. `api_help`
+Инструменты поддерживают вызов как по каноническим именам (`help`, `index`, `describe`, `search`), так и по именам с префиксом (`api_help`, `api_index`, `api_describe`, `api_search`).
+
+### 1. `help` / `api_help`
 Возвращает руководство для AI-агента по эффективной навигации и работе с API.
-- **Параметры:** `HelpToolDto` (`topic?: 'overview' | 'workflow' | 'filtering' | 'stock' | 'attributes'`).
+- **Параметры:** `HelpToolDto` (`topic?: 'overview' | 'pagination' | 'actors' | 'attributes' | 'parts' | 'stock' | 'categories' | 'units' | 'tags' | 'health'`).
 - **Результат:** Форматированный Markdown с инструкциями и примерами сценариев.
 
-### 2. `api_index`
+### 2. `index` / `api_index`
 Предоставляет каталог всех эндпоинтов API с группировкой по тегам/модулям.
-- **Параметры:** `IndexToolDto` (`tag?: string`, `includeDeprecated?: boolean`).
+- **Параметры:** `IndexToolDto` (`tag?: string`).
 - **Результат:** Таблица доступных маршрутов, HTTP-методов и кратких описаний.
 
-### 3. `api_describe`
+### 3. `describe` / `api_describe`
 Выполняет глубокую интроспекцию конкретного эндпоинта.
-- **Параметры:** `DescribeToolDto` (`path: string`, `method: string`).
+- **Параметры:** `DescribeToolDto` (`path?: string`, `method?: string`, `operationId?: string`).
 - **Результат:** Полное описание эндпоинта:
   - Query и Path параметры с типами и признаком обязательности.
   - TypeScript-определение структуры Request Body с примером JSON.
   - Спецификация ответов (200, 201, 400, 404, 422) с TypeScript-типами и примерами.
 
-### 4. `api_search`
+### 4. `search` / `api_search`
 Умный поиск эндпоинтов по ключевым словам, путям или описанию.
-- **Параметры:** `SearchToolDto` (`query: string`, `tag?: string`, `method?: string`, `limit?: number`).
+- **Параметры:** `SearchToolDto` (`query: string`, `tag?: string`, `method?: string`).
 - **Алгоритм ранжирования:** Вычисляет релевантность (score) совпадений в путях, тегах, summary и описаниях параметров.
 
 ---
@@ -68,10 +70,10 @@
 **Базовый префикс:** `/api/v1/mcp`
 
 - `GET /api/v1/mcp/tools` — Список инструментов MCP.
-- `POST /api/v1/mcp/tools/execute` — Выполнить инструмент по имени (`{ "tool": "api_describe", "arguments": { ... } }`).
+- `POST /api/v1/mcp/tools/:toolName` — Выполнить конкретный инструмент по имени в URL (например, `/tools/describe`) или через `/tools/execute` с телом `{ "tool": "describe", "arguments": { ... } }`.
 - `GET /api/v1/mcp/help` — Руководство по API.
 - `GET /api/v1/mcp/index` — Каталог маршрутов.
 - `GET /api/v1/mcp/describe?path=...&method=...` — Описание маршрута и схем.
 - `GET /api/v1/mcp/search?query=...` — Поиск маршрутов.
-- `POST /api/v1/mcp` — JSON-RPC 2.0 транспорт.
+- `POST /api/v1/mcp` — JSON-RPC 2.0 транспорт (поддерживает `initialize`, `tools/list`, `tools/call`, `ping`, `notifications/initialized`).
 - `GET /api/v1/mcp/sse` — SSE транспорт.
