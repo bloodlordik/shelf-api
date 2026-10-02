@@ -56,7 +56,7 @@
 
 ### Архитектура и структура
 - **CLI DataSource:** `src/database/data-source.ts`
-  - Безопасная загрузка переменных окружения с приоритетами (`.env.${NODE_ENV}.local` -> `.env.${NODE_ENV}` -> `.env`).
+  - Строгая изоляция: конфигурация подключения читается исключительно из файла `.env.production`. При отсутствии файла процесс прерывается с фатальной ошибкой.
   - Явный импорт всех 10 сущностей TypeORM (`Actor`, `Unit`, `Category`, `Tag`, `AttributeDefinition`, `AttributeOption`, `AttributeValueHistory`, `Part`, `AttributeValue`, `StockMovement`).
   - Конфигурация `synchronize: false`, путь к миграциям `src/database/migrations/*{.ts,.js}` и таблица версий `typeorm_migrations`.
 - **Каталог миграций:** `src/database/migrations/`

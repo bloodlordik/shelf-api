@@ -12,52 +12,55 @@ import { StockMovement } from '../modules/stock/entities/stock-movement.entity';
 import { Tag } from '../modules/tags/entities/tag.entity';
 import { Unit } from '../modules/units/entities/unit.entity';
 
-function loadEnvFileSafe(filePath: string): void {
-  if (!fs.existsSync(filePath)) return;
+function loadProductionEnv(): Record<string, string> {
+  const prodEnvPath = path.resolve(process.cwd(), '.env.production');
 
-  if (typeof process.loadEnvFile === 'function') {
-    try {
-      process.loadEnvFile(filePath);
-      return;
-    } catch {
-      // Fallback to manual line parser
-    }
+  if (!fs.existsSync(prodEnvPath)) {
+    throw new Error(
+      'Environment configuration file ".env.production" not found. Migrations must strictly load database settings from ".env.production".',
+    );
   }
 
-  try {
-    const content = fs.readFileSync(filePath, 'utf-8');
-    for (const rawLine of content.split('\n')) {
-      const line = rawLine.trim();
-      if (!line || line.startsWith('#')) continue;
-      const eqIdx = line.indexOf('=');
-      if (eqIdx !== -1) {
-        const key = line.slice(0, eqIdx).trim();
-        let val = line.slice(eqIdx + 1).trim();
-        if (
-          (val.startsWith('"') && val.endsWith('"')) ||
-          (val.startsWith("'") && val.endsWith("'"))
-        ) {
-          val = val.slice(1, -1);
-        }
-        if (!(key in process.env)) {
-          process.env[key] = val;
-        }
+  const envConfig: Record<string, string> = {};
+  const content = fs.readFileSync(prodEnvPath, 'utf-8');
+
+  for (const rawLine of content.split('\n')) {
+    const line = rawLine.trim();
+    if (!line || line.startsWith('#')) continue;
+    const eqIdx = line.indexOf('=');
+    if (eqIdx !== -1) {
+      const key = line.slice(0, eqIdx).trim();
+      let val = line.slice(eqIdx + 1).trim();
+      if (
+        (val.startsWith('"') && val.endsWith('"')) ||
+        (val.startsWith("'") && val.endsWith("'"))
+      ) {
+        val = val.slice(1, -1);
       }
+      envConfig[key] = val;
+      process.env[key] = val;
     }
-  } catch {
-    // Ignore environment file read errors
   }
+
+  return envConfig;
 }
 
-const nodeEnv = process.env.NODE_ENV || 'development';
-const envFiles = [
-  path.resolve(process.cwd(), `.env.${nodeEnv}.local`),
-  path.resolve(process.cwd(), `.env.${nodeEnv}`),
-  path.resolve(process.cwd(), '.env'),
-];
+const prodEnv = loadProductionEnv();
 
-for (const envFile of envFiles) {
-  loadEnvFileSafe(envFile);
+const requiredKeys = [
+  'DB_HOST',
+  'DB_PORT',
+  'DB_USERNAME',
+  'DB_PASSWORD',
+  'DB_DATABASE',
+] as const;
+
+for (const key of requiredKeys) {
+  if (!prodEnv[key]) {
+    throw new Error(
+      `Missing required database configuration "${key}" in ".env.production".`,
+    );
+  }
 }
 
 export const entities = [
@@ -79,16 +82,13 @@ const migrationsPattern = path
 
 export const dataSourceOptions: DataSourceOptions = {
   type: 'postgres',
-  host: process.env.DB_HOST || 'localhost',
-  port: parseInt(process.env.DB_PORT || '5432', 10),
-  username: process.env.DB_USERNAME || 'postgres',
-  password: process.env.DB_PASSWORD || 'postgres',
-  database:
-    process.env.DB_DATABASE ||
-    (nodeEnv === 'production' ? 'shelf_prod_db' : 'shelf_dev_db'),
+  host: prodEnv.DB_HOST,
+  port: parseInt(prodEnv.DB_PORT, 10),
+  username: prodEnv.DB_USERNAME,
+  password: prodEnv.DB_PASSWORD,
+  database: prodEnv.DB_DATABASE,
   synchronize: false,
-  logging:
-    process.env.NODE_ENV === 'development' || process.env.DB_LOGGING === 'true',
+  logging: process.env.DB_LOGGING === 'true' || prodEnv.DB_LOGGING === 'true',
   entities,
   migrations: [migrationsPattern],
   migrationsTableName: 'typeorm_migrations',
