@@ -6,7 +6,8 @@
 
 ### Конфигурация и запуск приложения
 1. **Безопасность (Helmet):**
-   - Настроена Content Security Policy (CSP) для безопасной работы Swagger UI (`validator.swagger.io`, `unsafe-inline`, `data:`).
+   - Настроена Content Security Policy (CSP) для Swagger UI (`validator.swagger.io`, `unsafe-inline`, `data:`, `upgradeInsecureRequests: null` для работы без принудительного HTTPS по локальным IP).
+   - Отключены `crossOriginOpenerPolicy` и `originAgentCluster` для исключения предупреждений браузера при HTTP-доступе.
 2. **CORS:**
    - Чтение переменной `CORS_ORIGIN`. Поддержка `*`, одиночных доменов или списков через запятую. Флаг `credentials: true`.
 3. **Глобальная валидация (ValidationPipe):**

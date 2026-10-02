@@ -20,8 +20,11 @@ async function bootstrap() {
           imgSrc: [`'self'`, 'data:', 'validator.swagger.io'],
           scriptSrc: [`'self'`, `'unsafe-inline'`, `'unsafe-eval'`],
           scriptSrcAttr: [`'unsafe-inline'`],
+          upgradeInsecureRequests: null,
         },
       },
+      crossOriginOpenerPolicy: false,
+      originAgentCluster: false,
     }),
   );
 
