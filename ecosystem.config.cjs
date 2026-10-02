@@ -14,7 +14,7 @@ module.exports = {
       },
       env_production: {
         NODE_ENV: 'production',
-        PORT: 3000,
+        PORT: 3015,
       },
       log_date_format: 'YYYY-MM-DD HH:mm:ss Z',
       error_file: 'logs/pm2-error.log',
