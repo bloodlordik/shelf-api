@@ -16,7 +16,10 @@ import {
 import { IsOptional, IsUUID } from 'class-validator';
 import { StockMovementsService } from './services/stock-movements.service';
 import { GlobalStockMovementFilterDto } from './dto/global-stock-movement-filter.dto';
-import { StockMovementResponseDto } from './dto/stock-movement-response.dto';
+import {
+  StockMovementResponseDto,
+  PaginatedStockMovementsResponseDto,
+} from './dto/stock-movement-response.dto';
 import { CreateStockMovementDto } from './dto/create-stock-movement.dto';
 import { PaginatedResponseDto } from '../../common/dto/paginated-response.dto';
 import { DomainException } from '../../common/exceptions/domain.exception';
@@ -43,7 +46,7 @@ export class StockMovementsController {
   @ApiResponse({
     status: 200,
     description: 'Пагинированный список складских движений',
-    type: PaginatedResponseDto<StockMovementResponseDto>,
+    type: PaginatedStockMovementsResponseDto,
   })
   getGlobalMovements(
     @Query() filterDto: GlobalStockMovementFilterDto,

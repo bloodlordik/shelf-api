@@ -17,17 +17,27 @@ export class PartCardUnitDto {
   group!: UnitGroup;
 }
 
-export class PartCardOptionDto {
-  @ApiProperty({ example: 'opt-1-uuid' })
+export class PartCardOptionResponseDto {
+  @ApiProperty({
+    example: 'opt-1-uuid',
+    description: 'UUID опции атрибута',
+  })
   id!: string;
 
-  @ApiProperty({ example: 'smd_0805' })
+  @ApiProperty({
+    example: 'smd_0805',
+    description: 'Техническое значение опции',
+  })
   value!: string;
 
-  @ApiProperty({ example: 'SMD 0805' })
+  @ApiProperty({
+    example: 'SMD 0805',
+    description: 'Отображаемое название опции',
+  })
   label!: string;
 }
 
+export { PartCardOptionResponseDto as PartCardOptionDto };
 export class PartCardAttributeItemDto {
   @ApiProperty({ example: 'd1-uuid' })
   definitionId!: string;
@@ -47,20 +57,42 @@ export class PartCardAttributeItemDto {
   @ApiPropertyOptional({ type: PartCardUnitDto, nullable: true })
   unit!: PartCardUnitDto | null;
 
-  @ApiProperty({ description: 'Сырое или скалярное/массив значение' })
+  @ApiProperty({
+    description:
+      'Сырое или скалярное значение атрибута в зависимости от dataType: число (number), строка (text/long_text/reference/file), boolean, дата (ISO string) или массив значений/ID (multi_enum / isMultiple)',
+    oneOf: [
+      { type: 'number', example: 10000 },
+      { type: 'string', example: 'smd_0805' },
+      { type: 'boolean', example: true },
+      {
+        type: 'array',
+        items: {
+          oneOf: [{ type: 'string' }, { type: 'number' }, { type: 'boolean' }],
+        },
+        example: ['opt-1-uuid', 'opt-2-uuid'],
+      },
+    ],
+  })
   value!: unknown;
-
   @ApiProperty({
     example: '12 В',
     description: 'Форматированное представление с единицами измерения/лейблами',
   })
   formattedValue!: string;
 
-  @ApiPropertyOptional({ type: PartCardOptionDto, nullable: true })
-  option?: PartCardOptionDto | null;
+  @ApiPropertyOptional({
+    type: () => PartCardOptionResponseDto,
+    nullable: true,
+    description: 'Выбранная опция для enum-атрибута (без циклических ссылок)',
+  })
+  option?: PartCardOptionResponseDto | null;
 
-  @ApiPropertyOptional({ type: [PartCardOptionDto] })
-  options?: PartCardOptionDto[];
+  @ApiPropertyOptional({
+    type: () => [PartCardOptionResponseDto],
+    description:
+      'Список выбранных опций для multi_enum-атрибута (без циклических ссылок)',
+  })
+  options?: PartCardOptionResponseDto[];
 }
 
 export class PartCardCategoryDto {

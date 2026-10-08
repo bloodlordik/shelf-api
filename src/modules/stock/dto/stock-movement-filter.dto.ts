@@ -1,6 +1,6 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
-import { IsDateString, IsEnum, IsInt, IsOptional, Min } from 'class-validator';
+import { IsEnum, IsInt, IsISO8601, IsOptional, Min } from 'class-validator';
 import { PaginationDto } from '../../../common/dto/pagination.dto';
 import { StockMovementType } from '../enums/stock-movement-type.enum';
 
@@ -10,14 +10,22 @@ export class StockMovementFilterDto extends PaginationDto {
   @IsEnum(StockMovementType)
   type?: StockMovementType;
 
-  @ApiPropertyOptional({ example: '2026-09-01T00:00:00Z' })
+  @ApiPropertyOptional({
+    example: '2026-09-01T00:00:00.000Z',
+    format: 'date-time',
+    description: 'Начальная дата выборки (ISO 8601)',
+  })
   @IsOptional()
-  @IsDateString()
+  @IsISO8601()
   fromDate?: string;
 
-  @ApiPropertyOptional({ example: '2026-09-24T23:59:59Z' })
+  @ApiPropertyOptional({
+    example: '2026-09-24T23:59:59.999Z',
+    format: 'date-time',
+    description: 'Конечная дата выборки (ISO 8601)',
+  })
   @IsOptional()
-  @IsDateString()
+  @IsISO8601()
   toDate?: string;
 
   @ApiPropertyOptional({

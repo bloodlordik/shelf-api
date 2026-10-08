@@ -151,6 +151,35 @@ export class PartsFilterService {
                   : JSON.stringify(condObj.eq),
             });
           }
+          if (condObj.in !== undefined) {
+            const rawIn = condObj.in;
+            const values = Array.isArray(rawIn)
+              ? rawIn
+                  .map((v) =>
+                    typeof v === 'string' ||
+                    typeof v === 'number' ||
+                    typeof v === 'boolean'
+                      ? String(v).trim()
+                      : '',
+                  )
+                  .filter(Boolean)
+              : typeof rawIn === 'string'
+                ? rawIn
+                    .split(',')
+                    .map((v) => v.trim())
+                    .filter(Boolean)
+                : typeof rawIn === 'number' || typeof rawIn === 'boolean'
+                  ? [String(rawIn)]
+                  : [];
+            if (values.length > 0) {
+              const kParam = `attr_k_${paramIndex}`;
+              const vParam = `attr_in_${paramIndex++}`;
+              qb.andWhere(
+                `(part.attributes_snapshot->>:${kParam} IN (:...${vParam}) OR part.attributes_snapshot->:${kParam} ?| array[:...${vParam}])`,
+                { [kParam]: attrKey, [vParam]: values },
+              );
+            }
+          }
         } else if (typeof condition === 'boolean') {
           const kParam = `attr_k_${paramIndex}`;
           const vParam = `attr_bool_${paramIndex++}`;

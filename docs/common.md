@@ -26,17 +26,16 @@
   - `skip: number` — Вычисляет смещение для SQL-запроса: `(page - 1) * limit`.
 
 ### `PaginatedResponseDto<T>` (`src/common/dto/paginated-response.dto.ts`)
-Унифицированная структура ответа для всех списочных эндпоинтов.
+Унифицированная базовая структура ответа для всех списочных эндпоинтов.
 
 - **Свойства:**
-  - `data: T[]` — Массив записей текущей страницы.
+  - `data: T[]` — Массив записей текущей страницы (в OpenAPI уточняется через специализированные подклассы DTO: `PaginatedStockMovementsResponseDto`, `PaginatedCategoriesResponseDto`, `PaginatedPartsResponseDto`).
   - `meta.total: number` — Общее количество записей по запросу.
   - `meta.page: number` — Номер текущей страницы.
   - `meta.limit: number` — Размер страницы.
   - `meta.totalPages: number` — Общее количество страниц (`Math.ceil(total / limit)`).
   - `meta.hasNextPage: boolean` — Флаг наличия следующей страницы (`page < totalPages`).
   - `meta.hasPreviousPage: boolean` — Флаг наличия предыдущей страницы (`page > 1`).
-
 ---
 
 ## 3. Обработка ошибок и исключения (Exceptions & Filters)

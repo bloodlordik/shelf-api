@@ -14,7 +14,13 @@ import {
   HttpStatus,
 } from '@nestjs/common';
 import type { Request } from 'express';
-import { ApiTags, ApiOperation, ApiResponse, ApiParam } from '@nestjs/swagger';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiParam,
+  ApiQuery,
+} from '@nestjs/swagger';
 import { PartsService } from './services/parts.service';
 import { PartsCardFacade } from './services/parts-card.facade';
 import { PartsFilterService } from './services/parts-filter.service';
@@ -26,9 +32,13 @@ import { ReplacePartAttributesDto } from './dto/replace-part-attributes.dto';
 import { PartFilterDto } from './dto/part-filter.dto';
 import { PartsSummaryDto } from './dto/parts-summary.dto';
 import { PartCardResponseDto } from './dto/part-card-response.dto';
+import { PaginatedPartsResponseDto } from './dto/part-response.dto';
 import { CreateStockMovementDto } from '../stock/dto/create-stock-movement.dto';
 import { StockMovementFilterDto } from '../stock/dto/stock-movement-filter.dto';
-import { StockMovementResponseDto } from '../stock/dto/stock-movement-response.dto';
+import {
+  StockMovementResponseDto,
+  PaginatedStockMovementsResponseDto,
+} from '../stock/dto/stock-movement-response.dto';
 import { AttributeHistoryFilterDto } from '../attributes/dto/attribute-history-filter.dto';
 import { AttributeValueHistoryResponseDto } from '../attributes/dto/attribute-value-history-response.dto';
 import { Part } from './entities/part.entity';
@@ -75,7 +85,63 @@ export class PartsController {
     summary:
       'Поиск и фильтрация деталей (по категории, тегам AND, атрибутам EAV/JSONB)',
   })
-  @ApiResponse({ status: 200, description: 'Список деталей с пагинацией' })
+  @ApiQuery({
+    name: 'attr',
+    required: false,
+    style: 'deepObject',
+    explode: true,
+    description:
+      'Фильтрация по динамическим характеристикам (JSONB).\n\n' +
+      '**Поддерживаемые форматы сериализации:**\n' +
+      '1. **deepObject (query string):** `attr[key][op]=val` или `attr[key]=val`\n' +
+      '   - Диапазоны: `attr[nominal_voltage][gte]=5&attr[nominal_voltage][lte]=12`\n' +
+      '   - Точное совпадение: `attr[package_type][eq]=smd_0805` или `attr[package_type]=smd_0805`\n' +
+      '   - Вхождение в список (in): `attr[package_type][in]=smd_0805,smd_0603`\n' +
+      '   - Логические флаги: `attr[rohs]=true`\n' +
+      '2. **JSON-строка:** `attr={"nominal_voltage":{"gte":5,"lte":12},"package_type":"smd_0805"}`\n\n' +
+      '**Операторы фильтрации:**\n' +
+      '- `gte` — больше или равно (для числовых характеристик)\n' +
+      '- `lte` — меньше или равно (для числовых характеристик)\n' +
+      '- `eq` — точное равенство (строка, число, boolean)\n' +
+      '- `in` — список допустимых значений (строка через запятую или массив строк)',
+    schema: {
+      type: 'object',
+      additionalProperties: {
+        oneOf: [
+          { type: 'string' },
+          { type: 'number' },
+          { type: 'boolean' },
+          {
+            type: 'object',
+            properties: {
+              gte: { type: 'number', example: 5 },
+              lte: { type: 'number', example: 12 },
+              eq: { type: 'string', example: 'smd_0805' },
+              in: {
+                oneOf: [
+                  { type: 'string', example: 'smd_0805,smd_0603' },
+                  {
+                    type: 'array',
+                    items: { type: 'string' },
+                    example: ['smd_0805', 'smd_0603'],
+                  },
+                ],
+              },
+            },
+          },
+        ],
+      },
+      example: {
+        nominal_voltage: { gte: 5, lte: 12 },
+        package_type: 'smd_0805',
+      },
+    },
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Список деталей с пагинацией',
+    type: PaginatedPartsResponseDto,
+  })
   findAll(
     @Query() filterDto: PartFilterDto,
     @Req() req: Request,
@@ -197,7 +263,7 @@ export class PartsController {
   @ApiResponse({
     status: 200,
     description: 'Пагинированный список движений по детали',
-    type: PaginatedResponseDto<StockMovementResponseDto>,
+    type: PaginatedStockMovementsResponseDto,
   })
   @ApiResponse({ status: 404, description: 'Деталь не найдена' })
   getMovements(

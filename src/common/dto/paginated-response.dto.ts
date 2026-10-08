@@ -21,7 +21,7 @@ export class PaginationMetaDto {
 }
 
 export class PaginatedResponseDto<T> {
-  @ApiProperty({ isArray: true, description: 'Список элементов' })
+  @ApiProperty({ description: 'Список элементов', type: () => [Object] })
   data!: T[];
 
   @ApiProperty({ type: PaginationMetaDto, description: 'Метаданные пагинации' })

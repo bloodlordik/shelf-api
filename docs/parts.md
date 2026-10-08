@@ -65,9 +65,8 @@
 ### 2. `PartsCardFacade` (`src/modules/parts/services/parts-card.facade.ts`)
 Фасад для формирования полной обогащенной карточки детали (`PartCardResponseDto`):
 - Разворачивает цепочку родительских категорий (хлебные крошки).
-- Преобразует нормализованные значения EAV в сгруппированные типизированные атрибуты с подстановкой единиц измерения и меток опций.
+- Преобразует нормализованные значения EAV в сгруппированные типизированные атрибуты `PartCardAttributeItemDto` с поддержкой `PartCardOptionResponseDto` (развязаны циклические ссылки) и точной типизацией значений `value` (`number`, `string`, `boolean`, `string[]` для `multi_enum`).
 - Добавляет метаданные складских движений (общее количество операций и последнее движение).
-
 ### 3. `PartsFilterService` (`src/modules/parts/services/parts-filter.service.ts`)
 Высокопроизводительный сервис фильтрации и поиска деталей:
 - **Полнотекстовый поиск (`search`):** Поиск по подстроке в `name`, `sku`, `description`, `location`.
@@ -76,8 +75,9 @@
 - **Динамическая фильтрация по атрибутам (`attr[...]`):**
   - Безопасная валидация ключей атрибутов через regex `/^[a-zA-Z0-9_]{1,64}$/`.
   - Параметризованные SQL-запросы с проверкой типов `jsonb_typeof` для предотвращения SQL-инъекций и ошибок некорректного каста типов.
-  - Поддерживает точные совпадения и операторы сравнения (`gte`, `lte`, `eq`, скаляры и массивы).
-  - Выполняет запросы к JSONB-колонке `attributes_snapshot` с использованием PostgreSQL JSONB-операторов (`@>`, `->`, `->>`, `?`).
+  - Поддерживает точные совпадения и операторы сравнения (`gte`, `lte`, `eq`, `in`, скаляры и массивы).
+  - Поддерживает синтаксис `deepObject` (`attr[key][op]=val`) и сериализованную JSON-строку (`attr={...}`).
+  - Выполняет запросы к JSONB-колонке `attributes_snapshot` с использованием PostgreSQL JSONB-операторов (`@>`, `->`, `->>`, `?`, `?|`).
 
 ### 4. `PartsSnapshotService` (`src/modules/parts/services/parts-snapshot.service.ts`)
 Генерирует компактную JSONB-структуру `attributesSnapshot`:
@@ -122,9 +122,11 @@
   - `minQuantity?: number`, `maxQuantity?: number`
   - `sortBy?: 'name' | 'sku' | 'quantity' | 'createdAt' | 'updatedAt'`
   - `sortOrder?: 'ASC' | 'DESC'`
-  - `attr[<key>]=<value>` или `attr[<key>][gte]=<value>`
-- **Ответ `200 OK`:** `PaginatedResponseDto<Part>`
-
+  - `attr`: фильтрация по динамическим характеристикам:
+    - `deepObject`: `attr[nominal_voltage][gte]=5&attr[nominal_voltage][lte]=12`, `attr[package_type][eq]=smd_0805`, `attr[package_type][in]=smd_0805,smd_0603`, `attr[rohs]=true`
+    - `JSON-string`: `attr={"nominal_voltage":{"gte":5,"lte":12},"package_type":"smd_0805"}`
+    - операторы: `gte`, `lte`, `eq`, `in`
+- **Ответ `200 OK`:** `PaginatedPartsResponseDto` (`PartDto[]` и `PaginationMetaDto`)
 ### `GET /api/v1/parts/summary`
 Сводная статистика каталога.
 - **Ответ `200 OK` (`PartsSummaryDto`):**
@@ -138,9 +140,12 @@
 ```
 
 ### `GET /api/v1/parts/:id`
-Полная карточка компонента.
-- **Ответ `200 OK` (`PartCardResponseDto`):** Детальный объект с категорией, хлебными крошками, тегами, форматированными атрибутами и статистикой движений.
+Базовая информация о детали по ID.
+- **Ответ `200 OK`:** Сущность `Part`.
 
+### `GET /api/v1/parts/:id/card`
+Полная обогащенная карточка компонента.
+- **Ответ `200 OK` (`PartCardResponseDto`):** Детальный объект с категорией, хлебными крошками, тегами, форматированными атрибутами (`PartCardAttributeItemDto`, `PartCardOptionResponseDto`) и статистикой движений.
 ### `PATCH /api/v1/parts/:id`
 Частичное обновление компонента (`UpdatePartDto`).
 
@@ -151,8 +156,8 @@
 Удаление компонента.
 
 ### `GET /api/v1/parts/:id/movements`
-Журнал складских движений по детали (`StockMovementFilterDto`).
-
+Журнал складских движений по детали (`StockMovementFilterDto` с валидацией `fromDate` и `toDate` в формате ISO 8601).
+- **Ответ `200 OK`:** `PaginatedStockMovementsResponseDto` (список `StockMovementResponseDto[]` и `PaginationMetaDto`).
 ### `POST /api/v1/parts/:id/movements`
 Проведение складского движения по детали (`CreateStockMovementDto`).
 

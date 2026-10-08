@@ -16,7 +16,10 @@ import { CategoriesService } from './categories.service';
 import { CreateCategoryDto } from './dto/create-category.dto';
 import { UpdateCategoryDto } from './dto/update-category.dto';
 import { CategoryTreeDto } from './dto/category-tree.dto';
-import { CategoryDetailResponseDto } from './dto/category-response.dto';
+import {
+  CategoryDetailResponseDto,
+  PaginatedCategoriesResponseDto,
+} from './dto/category-response.dto';
 import { Category } from './entities/category.entity';
 import { PaginationDto } from '../../common/dto/pagination.dto';
 import { PaginatedResponseDto } from '../../common/dto/paginated-response.dto';
@@ -50,7 +53,11 @@ export class CategoriesController {
 
   @Get()
   @ApiOperation({ summary: 'Получить плоский список категорий с пагинацией' })
-  @ApiResponse({ status: 200, description: 'Список категорий' })
+  @ApiResponse({
+    status: 200,
+    description: 'Список категорий с пагинацией',
+    type: PaginatedCategoriesResponseDto,
+  })
   findAll(
     @Query() pagination: PaginationDto,
   ): Promise<PaginatedResponseDto<Category>> {

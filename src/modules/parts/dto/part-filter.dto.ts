@@ -85,7 +85,23 @@ export class PartFilterDto {
 
   @ApiPropertyOptional({
     description:
-      'Фильтры по динамическим атрибутам, например { nominal_voltage: { gte: 5, lte: 12 }, package_type: "smd_0805" }',
+      'Фильтрация по динамическим EAV/JSONB атрибутам детали.\n\n' +
+      '**Поддерживаемые форматы сериализации:**\n' +
+      '1. **deepObject (query string):** `attr[key][op]=val` или `attr[key]=val`\n' +
+      '   - Диапазоны: `attr[nominal_voltage][gte]=5&attr[nominal_voltage][lte]=12`\n' +
+      '   - Точное совпадение: `attr[package_type][eq]=smd_0805` или `attr[package_type]=smd_0805`\n' +
+      '   - Вхождение в список: `attr[package_type][in]=smd_0805,smd_0603`\n' +
+      '   - Логические флаги: `attr[rohs]=true`\n' +
+      '2. **JSON-строка:** `attr={"nominal_voltage":{"gte":5,"lte":12},"package_type":"smd_0805"}`\n\n' +
+      '**Операторы фильтрации:**\n' +
+      '- `gte` — больше или равно (для числовых характеристик)\n' +
+      '- `lte` — меньше или равно (для числовых характеристик)\n' +
+      '- `eq` — строгое равенство (строка, число, boolean)\n' +
+      '- `in` — список допустимых значений (строка через запятую или массив строк)',
+    example: {
+      nominal_voltage: { gte: 5, lte: 12 },
+      package_type: 'smd_0805',
+    },
   })
   @IsOptional()
   @IsObject()

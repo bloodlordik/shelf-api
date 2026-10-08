@@ -1,3 +1,4 @@
+import { PaginatedResponseDto } from '../../../common/dto/paginated-response.dto';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { StockMovementType } from '../enums/stock-movement-type.enum';
 
@@ -41,4 +42,12 @@ export class StockMovementResponseDto {
 
   @ApiProperty({ example: '2026-09-24T10:00:00.000Z' })
   performedAt!: Date;
+}
+
+export class PaginatedStockMovementsResponseDto extends PaginatedResponseDto<StockMovementResponseDto> {
+  @ApiProperty({
+    type: () => [StockMovementResponseDto],
+    description: 'Список складских движений',
+  })
+  declare data: StockMovementResponseDto[];
 }

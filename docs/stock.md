@@ -67,11 +67,11 @@
   - Тело запроса: `CreateStockMovementDto`.
   - Ответ `201 Created`: `StockMovementResponseDto`.
 - **`GET /api/v1/parts/:id/movements`** — Получить историю движений конкретной детали.
-  - Query параметры (`StockMovementFilterDto`): `movementType`, `performedBy`, `startDate`, `endDate`, `page`, `limit`.
-  - Ответ `200 OK`: `PaginatedResponseDto<StockMovementResponseDto>`.
+  - Query параметры (`StockMovementFilterDto`): `type`, `performedBy`, `fromDate` (ISO 8601 `date-time`), `toDate` (ISO 8601 `date-time`), `page`, `limit`.
+  - Ответ `200 OK`: `PaginatedStockMovementsResponseDto` (наследует `PaginatedResponseDto<StockMovementResponseDto>` с элементами `StockMovementResponseDto[]`).
 
 ### 2. Глобальные маршруты склада (`/api/v1/stock/movements`)
 - **`GET /api/v1/stock/movements`** — Глобальный журнал движений по всем деталям склада.
-  - Query параметры (`GlobalStockMovementFilterDto`): `partId`, `search`, `movementType`, `performedBy`, `startDate`, `endDate`, `page`, `limit`.
-  - Ответ `200 OK`: `PaginatedResponseDto<StockMovementResponseDto>`.
+  - Query параметры (`GlobalStockMovementFilterDto`): `partId`, `sku`, `type`, `performedBy`, `fromDate` (ISO 8601 `date-time`), `toDate` (ISO 8601 `date-time`), `page`, `limit`.
+  - Ответ `200 OK`: `PaginatedStockMovementsResponseDto` (наследует `PaginatedResponseDto<StockMovementResponseDto>` с элементами `StockMovementResponseDto[]`).
 - **`POST /api/v1/stock/movements`** — Создать движение (требует `partId` в теле запроса).

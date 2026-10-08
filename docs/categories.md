@@ -40,12 +40,17 @@
 - Элемент пути хлебных крошек:
   - `id: string`, `name: string`, `code?: string | null`, `level: number`.
 
+### `CategoryResponseDto` и `PaginatedCategoriesResponseDto` (`src/modules/categories/dto/category-response.dto.ts`)
+- Базовый ответ категории:
+  - `id: string`, `name: string`, `code?: string | null`, `parentId?: string | null`, `createdAt: Date`, `updatedAt: Date`.
+- Пагинированный список:
+  - `data: CategoryResponseDto[]`
+  - `meta: PaginationMetaDto`
+
 ### `CategoryDetailResponseDto` (`src/modules/categories/dto/category-response.dto.ts`)
 - Детальный ответ категории:
   - Данные сущности `Category`.
   - `breadcrumbs: CategoryBreadcrumbDto[]` — Массив хлебных крошек от корня дерева до текущей категории.
-  - `childrenCount: number` — Количество прямых подкатегорий.
-
 ---
 
 ## 3. Бизнес-логика (`CategoriesService`)
@@ -77,8 +82,7 @@
 ### `GET /api/v1/categories`
 Получить плоский список категорий с пагинацией.
 - **Query параметры:** `page?: number`, `limit?: number`.
-- **Ответ `200 OK`:** `PaginatedResponseDto<Category>`
-
+- **Ответ `200 OK`:** `PaginatedCategoriesResponseDto` (список `CategoryResponseDto` и метаданные пагинации).
 ### `GET /api/v1/categories/:id`
 Получить категорию по UUID с хлебными крошками и счётчиком подкатегорий.
 - **Ответы:** `200 OK` (`CategoryDetailResponseDto`), `404 Not Found`.

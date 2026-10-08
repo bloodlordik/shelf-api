@@ -10,7 +10,7 @@ import {
   PartCardAttributeItemDto,
   PartCardCategoryDto,
   PartCardTagDto,
-  PartCardOptionDto,
+  PartCardOptionResponseDto,
   PartCardUnitDto,
 } from '../dto/part-card-response.dto';
 import { AttributeDataType } from '../../attributes/enums/attribute-data-type.enum';
@@ -100,7 +100,7 @@ export class PartsCardFacade {
 
       if (isMultiple) {
         const rawValues: unknown[] = [];
-        const optionDtos: PartCardOptionDto[] = [];
+        const optionDtos: PartCardOptionResponseDto[] = [];
         const formattedParts: string[] = [];
 
         for (const av of values) {
@@ -183,7 +183,7 @@ export class PartsCardFacade {
   ): {
     rawVal: unknown;
     formattedVal: string;
-    optDto?: PartCardOptionDto | null;
+    optDto?: PartCardOptionResponseDto | null;
   } {
     switch (dataType) {
       case AttributeDataType.NUMBER:
@@ -214,7 +214,7 @@ export class PartsCardFacade {
       case AttributeDataType.MULTI_ENUM: {
         const opt = av.valueOption;
         if (opt) {
-          const optDto: PartCardOptionDto = {
+          const optDto: PartCardOptionResponseDto = {
             id: opt.id,
             value: opt.value,
             label: opt.label,
